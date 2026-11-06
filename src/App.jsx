@@ -13,9 +13,15 @@ const DEVELOPMENT_STAGES = [
   { id: 'phase-5', label: 'Phase 5', name: '3-band EQ', done: true },
   { id: 'phase-6', label: 'Phase 6', name: 'Real waveforms', done: true },
   { id: 'phase-7', label: 'Phase 7', name: 'Approx. BPM detection', done: true },
-  { id: 'phase-8', label: 'Phase 8', name: 'Sync & pitch', done: true },
-  { id: 'phase-9', label: 'Phase 9', name: 'Beat loops', done: true },
+  { id: 'phase-8', label: 'Phase 8', name: 'Approx. sync & pitch', done: true },
+  { id: 'phase-9', label: 'Phase 9', name: 'Approx. beat loops', done: true },
   { id: 'phase-10', label: 'Phase 10', name: 'Audio effects', done: false },
+  { id: 'phase-11', label: 'Phase 11', name: 'Library & playlists', done: false },
+  { id: 'phase-12', label: 'Phase 12', name: 'Mix recording', done: false },
+  { id: 'phase-13', label: 'Phase 13', name: 'Spotify metadata', done: false },
+  { id: 'phase-14', label: 'Phase 14', name: 'Licensed music sources', done: false },
+  { id: 'phase-15', label: 'Phase 15', name: 'Electron desktop app', done: false },
+  { id: 'phase-16', label: 'Phase 16', name: 'Testing & optimization', done: false },
 ];
 
 function App() {
@@ -125,7 +131,7 @@ function App() {
           </button>
         </div>
       )}
-      <div className="app__checklist" aria-label="Development checklist">
+      <div className="app__checklist" aria-label="Development phases checklist; scroll horizontally to see all phases">
         {DEVELOPMENT_STAGES.map((phase) => (
           <div
             key={phase.id}

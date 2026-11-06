@@ -74,6 +74,7 @@ export default function Deck({
     setIsPlaying(false);
     setPitch(0);
     onPitchChange?.(0);
+    onPositionChange?.(0);
     loopRef.current = null;
     setActiveLoop(null);
     waveformRequestRef.current += 1;
@@ -296,7 +297,7 @@ export default function Deck({
       ? ' Pitch limit ±12% reached; BPM match is partial.'
       : '';
     onSyncFeedback?.(
-      `Deck ${deckId} synced near beat ${sourceBeat + 1} at ${matchedBpm.toFixed(1)} BPM. BPM estimates are approximate.${limited}`,
+      `Deck ${deckId} synced near beat ${sourceBeat + 1} at ${matchedBpm.toFixed(1)} BPM. Phase assumes the first beat is at track start; BPM is approximate.${limited}`,
     );
   };
 
@@ -313,7 +314,7 @@ export default function Deck({
       return;
     }
 
-    const start = currentTime;
+    const start = audioRef.current?.currentTime ?? currentTime;
     const end = start + (loopBeats * 60) / bpm;
     if (end > duration) {
       setError('Track ke end se pehle poora loop fit nahi hota. Playhead ko thoda peeche le jaayein.');
@@ -343,6 +344,7 @@ export default function Deck({
     audioRef.current.pause();
     audioRef.current.currentTime = 0;
     setCurrentTime(0);
+    onPositionChange?.(0);
     setIsPlaying(false);
     onPlayingChange?.(false);
   };
@@ -415,7 +417,11 @@ export default function Deck({
               {track?.bpm && track.bpm !== '—' ? `~${track.bpm}` : '—'}
             </span>
             <span className="deck__bpm-label">
-              {waveformStatus === 'analyzing' ? 'ANALYZING' : 'APPROX. BPM'}
+              {waveformStatus === 'analyzing'
+                ? 'ANALYZING'
+                : track?.bpm && track.bpm !== '—'
+                  ? 'APPROX. BPM'
+                  : 'BPM NOT FOUND'}
             </span>
           </div>
           <div className="deck__time">
@@ -480,7 +486,7 @@ export default function Deck({
           aria-label={`Seek using Deck ${deckId} waveform`}
           aria-valuemin={Math.floor(waveformStart)}
           aria-valuemax={Math.floor(waveformEnd)}
-          aria-valuenow={Math.floor(currentTime)}
+          aria-valuenow={Math.floor(Math.min(waveformEnd, Math.max(waveformStart, currentTime)))}
           onPointerDown={(event) => {
             if (!waveformPeaks.length) return;
             const bounds = event.currentTarget.getBoundingClientRect();
