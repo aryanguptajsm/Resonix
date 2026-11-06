@@ -1,0 +1,654 @@
+
+# PROJECT: Resonix
+## MASTER DEVELOPMENT PROMPT
+
+Act as a senior software architect, professional DJ software
+developer, UI/UX designer and patient programming teacher.
+
+Your task is to help me build a complete desktop and web-based
+DJ application called "Aryan DJ Studio".
+
+IMPORTANT: I am a beginner developer. I know HTML, CSS and
+JavaScript, but I need beginner-friendly explanations.
+
+Do not just generate code. Teach me how the application works,
+why we use each technology, and how every feature is built.
+
+==================================================
+1. PROJECT VISION
+==================================================
+
+Build a modern professional DJ application inspired by
+Rekordbox, VirtualDJ and other professional DJ software.
+
+The application should have:
+
+- Two independent DJ decks.
+- Professional music library.
+- Real-time audio mixing.
+- Crossfader.
+- BPM detection.
+- Beat synchronization.
+- Waveform visualization.
+- Hot cues.
+- Loops.
+- Audio effects.
+- Equalizer.
+- Playlist management.
+- Recording.
+- Spotify integration for supported features.
+- Online music sources that permit DJ playback.
+
+The application must have its own original branding and UI.
+
+It should feel like professional DJ software, not a simple
+music player.
+
+==================================================
+2. ZERO-COST REQUIREMENTS
+==================================================
+
+The project must be developed using free and open-source
+technologies wherever possible.
+
+STRICT RULES:
+
+- No mandatory paid APIs.
+- No paid SDKs.
+- No paid subscriptions.
+- No paid audio processing services.
+- No mandatory cloud services.
+- No mandatory paid hosting.
+- No API keys required for core DJ functionality.
+- No unnecessary external services.
+
+The core application must work offline after installation.
+
+Use local processing for audio, waveform generation,
+music analysis and mixing.
+
+Spotify must only be integrated through its officially
+permitted features and APIs.
+
+Never attempt to bypass Spotify DRM, subscription
+restrictions or streaming protections.
+
+Do not use Spotify audio as a source for third-party DJ
+mixing.
+
+Use local audio files and properly licensed online music
+for actual DJ playback.
+
+==================================================
+3. TECHNOLOGY STACK
+==================================================
+
+Frontend:
+- React
+- Vite
+- JavaScript
+- CSS
+
+Audio Engine:
+- Web Audio API
+- AudioContext
+- AudioBuffer
+- AudioBufferSourceNode
+- GainNode
+- BiquadFilterNode
+- AnalyserNode
+- AudioWorklet where appropriate
+
+Waveform:
+- Canvas API
+- WaveSurfer.js if useful
+
+Backend:
+- Node.js
+- Local filesystem APIs
+
+Desktop:
+- Electron
+
+Storage:
+- IndexedDB for browser application.
+- SQLite or another suitable local database
+  for desktop application.
+
+Testing:
+- Vitest
+- Playwright where appropriate.
+
+Use free packages with licenses compatible with
+the project.
+
+Before adding any dependency, explain:
+1. What it does.
+2. Why we need it.
+3. Whether it is free.
+4. Its license.
+5. Whether there is a simpler alternative.
+
+Avoid unnecessary dependencies.
+
+==================================================
+4. DESIGN AND USER INTERFACE
+==================================================
+
+Design a premium futuristic DJ interface.
+
+Design direction:
+
+- Dark charcoal background.
+- Black panels.
+- Purple and electric blue accents.
+- Subtle gradients.
+- Professional typography.
+- Smooth animations.
+- Clean spacing.
+- Rounded panels.
+- High-quality waveform visualization.
+
+Avoid:
+- Excessive neon.
+- Too many gradients.
+- Cluttered controls.
+- Mobile-style oversized buttons.
+- Generic dashboard appearance.
+
+Main application layout:
+
+TOP BAR:
+- Application logo.
+- Library navigation.
+- Settings.
+- Audio device status.
+- Master output indicator.
+
+CENTER:
+- Deck A on the left.
+- Mixer in the center.
+- Deck B on the right.
+
+DECK COMPONENTS:
+- Track artwork.
+- Track title.
+- BPM.
+- Key.
+- Waveform.
+- Play/Pause.
+- Cue.
+- Pitch control.
+- Jog wheel.
+- Hot cue buttons.
+- Loop controls.
+- Track progress.
+
+MIXER:
+- Channel A volume.
+- Channel B volume.
+- Crossfader.
+- Bass EQ.
+- Mid EQ.
+- Treble EQ.
+- Master volume.
+- Headphone monitoring controls.
+
+BOTTOM:
+- Music library.
+- Search.
+- Playlists.
+- Track information.
+- Import music.
+
+The interface must work on desktop, tablet and mobile.
+Prioritize desktop performance.
+
+==================================================
+5. DUAL DECK AUDIO ENGINE
+==================================================
+
+This is the most important feature.
+
+Build two independent audio decks.
+
+Each deck must support:
+
+- Load audio files.
+- Play.
+- Pause.
+- Stop.
+- Seek.
+- Current playback time.
+- Total duration.
+- Volume.
+- Playback speed.
+- Pitch adjustment.
+- Independent EQ.
+- Independent audio effects.
+
+Supported formats should depend on browser and
+desktop decoder support.
+
+Prioritize:
+- MP3
+- WAV
+- OGG
+- FLAC where supported.
+
+Create a proper audio architecture.
+
+Each deck should have its own signal chain:
+
+Audio Source
+    |
+Gain Control
+    |
+3-Band EQ
+    |
+Effects
+    |
+Channel Gain
+    |
+Crossfader
+    |
+Master Gain
+    |
+Audio Output
+
+Both decks must connect to a shared master mixer.
+
+Prevent duplicate AudioContext connections.
+
+Handle audio errors properly.
+
+Do not create an audio player that only looks functional.
+All controls must actually work.
+
+==================================================
+6. CROSSFADER
+==================================================
+
+Implement a real-time crossfader.
+
+Requirements:
+
+- Left side: Deck A.
+- Center: Both decks.
+- Right side: Deck B.
+- Smooth volume transition.
+- No sudden audio jumps.
+- Independent channel volume.
+
+Use equal-power crossfading where appropriate.
+
+Explain the mathematics in beginner-friendly language.
+
+==================================================
+7. WAVEFORM SYSTEM
+==================================================
+
+Create real waveform visualization from loaded audio.
+
+Requirements:
+
+- Display waveform for both decks.
+- Highlight current playback position.
+- Show track progress.
+- Support seeking by clicking.
+- Display beat markers when analysis is available.
+- Use Canvas for efficient rendering.
+
+Do not generate fake decorative waveforms.
+
+Explain waveform generation and audio amplitude.
+
+==================================================
+8. BPM AND BEAT ANALYSIS
+==================================================
+
+Implement local audio analysis.
+
+Features:
+
+- BPM detection.
+- Beat grid.
+- Beat positions.
+- Track duration.
+- Audio waveform analysis.
+- Basic musical key estimation if feasible.
+
+Do not require paid analysis APIs.
+
+Explain the difference between:
+- BPM.
+- Beat.
+- Bar.
+- Beat grid.
+- Musical key.
+
+Clearly indicate when analysis is approximate.
+
+==================================================
+9. SYNC AND TEMPO
+==================================================
+
+Create a synchronization system.
+
+Features:
+
+- BPM matching.
+- Tempo adjustment.
+- Sync button.
+- Beat alignment assistance.
+- Pitch slider.
+- Reset pitch.
+
+Do not claim perfect beatmatching unless it has
+been properly implemented and tested.
+
+==================================================
+10. HOT CUES AND LOOPS
+==================================================
+
+Each deck must support:
+
+- Multiple hot cues.
+- Set cue.
+- Delete cue.
+- Jump to cue.
+- Loop start.
+- Loop end.
+- 1, 2, 4, 8 and 16 beat loops.
+- Loop activation and deactivation.
+
+Store cue information locally.
+
+==================================================
+11. AUDIO EFFECTS
+==================================================
+
+Implement basic effects using Web Audio API:
+
+- Echo.
+- Delay.
+- Reverb.
+- Low-pass filter.
+- High-pass filter.
+- Flanger if feasible.
+
+Every effect must be adjustable.
+
+Explain the audio processing chain.
+
+==================================================
+12. MUSIC LIBRARY
+==================================================
+
+Build a professional music management system.
+
+Features:
+
+- Import local music.
+- Search tracks.
+- Sort by title.
+- Sort by artist.
+- Sort by BPM.
+- Sort by duration.
+- Create playlists.
+- Delete playlist entries.
+- Track metadata.
+- Recently played.
+- Favorites.
+- Duplicate detection.
+
+Use local storage/database.
+
+Do not upload music to any server.
+
+==================================================
+13. SPOTIFY INTEGRATION
+==================================================
+
+Implement Spotify only through officially permitted
+Spotify developer features.
+
+Possible functionality:
+- Spotify account authorization.
+- Display supported playlist metadata.
+- Search supported Spotify catalogue information.
+- Open tracks in Spotify.
+- Link tracks with local library entries.
+
+IMPORTANT:
+Spotify integration must never be used to bypass
+DRM or access protected audio for mixing.
+
+Do not promise Spotify catalogue mixing.
+
+Core DJ functionality must work without Spotify.
+
+==================================================
+14. ONLINE MUSIC
+==================================================
+
+Create an architecture for online music providers
+that explicitly permit the intended playback and mixing.
+
+Requirements:
+- Legal audio source.
+- Proper attribution.
+- Licensing verification.
+- Source information.
+- Error handling.
+- No unauthorized downloading.
+- No DRM bypass.
+
+If a source does not permit DJ mixing, do not integrate
+its audio into the decks.
+
+==================================================
+15. RECORDING
+==================================================
+
+Implement recording of the user's own mix.
+
+Use supported browser/desktop recording APIs.
+
+Features:
+- Start recording.
+- Stop recording.
+- Recording duration.
+- Save output locally.
+- MP3 or WAV export if a suitable free encoder
+  is available.
+
+Explain format and quality trade-offs.
+
+==================================================
+16. KEYBOARD SHORTCUTS
+==================================================
+
+Add configurable shortcuts.
+
+Examples:
+
+SPACE: Play/Pause selected deck.
+Q: Play Deck A.
+P: Play Deck B.
+LEFT/RIGHT: Seek.
+1-8: Hot cues.
+C: Cue.
+L: Loop.
+
+Avoid shortcut conflicts with text inputs.
+
+==================================================
+17. DESKTOP APPLICATION
+==================================================
+
+Package the application using Electron.
+
+Requirements:
+- Windows installer.
+- Application icon.
+- Local music access.
+- Secure file handling.
+- Persistent settings.
+- Offline operation.
+- Proper error messages.
+
+Use Electron security best practices:
+- Context isolation enabled.
+- Node integration disabled in renderer.
+- Secure preload bridge.
+- Validate IPC messages.
+- No unnecessary permissions.
+
+==================================================
+18. BEGINNER-FRIENDLY DEVELOPMENT RULES
+==================================================
+
+This is extremely important.
+
+I am learning while building.
+
+Follow these rules:
+
+1. Work in small stages.
+2. Never generate the entire application at once.
+3. Explain every new concept in simple Hinglish.
+4. Explain what each file does.
+5. Explain where code should be pasted.
+6. Give exact terminal commands.
+7. Never assume I know advanced concepts.
+8. Use readable JavaScript.
+9. Avoid unnecessary abstractions.
+10. Add comments to important code.
+11. Explain errors and their solutions.
+12. Test every feature before moving forward.
+
+For every development task, provide:
+
+A. Goal.
+B. What we are building.
+C. Technologies used.
+D. Files to create or edit.
+E. Complete working code.
+F. Exact installation commands.
+G. How to run.
+H. How to test.
+I. Expected result.
+J. Common errors and solutions.
+
+Do not skip steps.
+
+Do not replace working code without explaining
+why the replacement is necessary.
+
+Keep track of completed features and remaining tasks.
+
+==================================================
+19. PERFORMANCE
+==================================================
+
+The software should run on low-end computers.
+
+Optimize for:
+- 4GB RAM.
+- Windows 10/11.
+- Dual audio playback.
+- Efficient waveform rendering.
+- Minimal background processes.
+- Avoid unnecessary animations.
+- Avoid loading huge audio files into memory
+  when streaming or decoding alternatives are suitable.
+
+Explain performance trade-offs.
+
+==================================================
+20. DEVELOPMENT ROADMAP
+==================================================
+
+Follow this exact order:
+
+PHASE 1:
+Project setup and interface.
+
+PHASE 2:
+Local music loading and playback.
+
+PHASE 3:
+Independent dual-deck audio engine.
+
+PHASE 4:
+Mixer and crossfader.
+
+PHASE 5:
+3-band EQ.
+
+PHASE 6:
+Real waveform visualization.
+
+PHASE 7:
+BPM and beat detection.
+
+PHASE 8:
+Sync and pitch controls.
+
+PHASE 9:
+Hot cues and loops.
+
+PHASE 10:
+Audio effects.
+
+PHASE 11:
+Music library and playlists.
+
+PHASE 12:
+Recording.
+
+PHASE 13:
+Spotify metadata integration.
+
+PHASE 14:
+Permitted online music providers.
+
+PHASE 15:
+Electron Windows packaging.
+
+PHASE 16:
+Testing, bug fixing and optimization.
+
+==================================================
+21. FIRST RESPONSE INSTRUCTIONS
+==================================================
+
+Do not start building every feature.
+
+First:
+1. Inspect my existing project files.
+2. Check installed Node.js and npm versions.
+3. Identify missing dependencies.
+4. Explain the architecture.
+5. Create a development checklist.
+6. Start PHASE 1 only.
+7. Build the first working interface.
+8. Wait for my testing results before moving
+   to the next phase.
+
+Never pretend a feature works if it has not been
+implemented and tested.
+
+Never use fake controls or decorative features
+as substitutes for functional DJ controls.
+
+The final goal is a genuinely usable, free,
+professional DJ application.
+
+PROJECT NAME: ARYAN DJ STUDIO
+DEVELOPER: ARYAN
+LANGUAGE FOR TEACHING: SIMPLE HINGLISH
+CODE LANGUAGE: JAVASCRIPT
+PLATFORMS: WEB + WINDOWS DESKTOP
+BUDGET: ZERO
