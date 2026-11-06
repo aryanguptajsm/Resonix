@@ -21,12 +21,7 @@ function App() {
       file.type.startsWith('audio/')
       || /\.(mp3|wav|ogg|flac|m4a|aac|opus)$/i.test(file.name)
     ));
-
-    if (acceptedFiles.length !== files.length) {
-      setNotice('Kuch files audio format mein nahi thi, isliye import nahi hui.');
-    } else {
-      setNotice('');
-    }
+    const rejectedCount = files.length - acceptedFiles.length;
 
     const importedTracks = acceptedFiles.map((file) => {
       const url = URL.createObjectURL(file);
@@ -45,7 +40,12 @@ function App() {
 
     if (importedTracks.length > 0) {
       setTracks((currentTracks) => [...currentTracks, ...importedTracks]);
-      setNotice(`${importedTracks.length} audio file(s) library mein add hue.`);
+      const skippedMessage = rejectedCount > 0
+        ? ` ${rejectedCount} non-audio file(s) skip hui.`
+        : '';
+      setNotice(`${importedTracks.length} audio file(s) library mein add hue.${skippedMessage}`);
+    } else if (rejectedCount > 0) {
+      setNotice('Selected files supported audio format mein nahi hain.');
     }
   };
 

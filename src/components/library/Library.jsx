@@ -1,6 +1,8 @@
 import React, { useMemo, useRef, useState } from 'react';
 import './Library.css';
 
+const TABS = ['ALL TRACKS', 'PLAYLISTS', 'FAVORITES', 'HISTORY'];
+
 function formatDuration(seconds) {
   if (!Number.isFinite(seconds)) return '—';
   const minutes = Math.floor(seconds / 60);
