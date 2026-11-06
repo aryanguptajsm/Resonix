@@ -103,9 +103,74 @@
 /* ══════════════════════════════════════════════════════════════
    2. WAVEFORM AREA
    ══════════════════════════════════════════════════════════════ */
+.deck__waveform-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  min-height: 26px;
+}
+
+.deck__waveform-meta {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+}
+
+.deck__waveform-title {
+  color: var(--text-secondary);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+}
+
+.deck__waveform-time-range {
+  color: var(--text-tertiary);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  white-space: nowrap;
+}
+
+.deck__waveform-controls {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.deck__waveform-zoom,
+.deck__waveform-nav {
+  display: grid;
+  min-width: 27px;
+  height: 22px;
+  place-items: center;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  font-size: 9px;
+  cursor: pointer;
+}
+
+.deck__waveform-zoom--active {
+  border-color: var(--_deck-color);
+  background: color-mix(in srgb, var(--_deck-color) 15%, var(--bg-tertiary));
+  color: var(--text-primary);
+}
+
+.deck__waveform-nav {
+  font-size: 15px;
+}
+
+.deck__waveform-zoom:disabled,
+.deck__waveform-nav:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
 .deck__waveform-container {
   position: relative;
-  height: 112px;
+  height: 132px;
   background:
     linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px),
     linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px),
@@ -454,6 +519,18 @@
 .deck__loop-btn:hover {
   background: var(--bg-elevated, #22222e);
   color: var(--text-primary, #f0f0f5);
+}
+
+.deck__loop-btn--selected {
+  border: 1px solid var(--_deck-color);
+  color: var(--text-primary);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--_deck-color) 35%, transparent);
+}
+
+.deck__loop-btn--active {
+  background: color-mix(in srgb, var(--_deck-color) 20%, var(--bg-surface));
+  color: var(--_deck-color);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--_deck-color) 30%, transparent);
 }
 
 /* LOOP toggle gets a subtle accent border */

@@ -21,9 +21,16 @@ export default function Deck({
   channelVolume = 0.8,
   outputMix = 0.8,
   eq = { low: 0, mid: 0, high: 0 },
+  syncBpm,
+  syncTime = 0,
+  syncPitch = 0,
   onDurationChange,
+  onBpmChange,
   onEqChange,
   onVolumeChange,
+  onPositionChange,
+  onPitchChange,
+  onSyncFeedback,
   onPlayingChange,
 }) {
   const audioRef = useRef(null);
@@ -31,16 +38,23 @@ export default function Deck({
   const waveformCanvasRef = useRef(null);
   const drawWaveformRef = useRef(() => {});
   const waveformRequestRef = useRef(0);
+  const loopRef = useRef(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [pitch, setPitch] = useState(0);
+  const [waveformWindowSeconds, setWaveformWindowSeconds] = useState(30);
+  const [waveformStart, setWaveformStart] = useState(0);
   const [waveformPeaks, setWaveformPeaks] = useState([]);
+  const [loopBeats, setLoopBeats] = useState(4);
+  const [activeLoop, setActiveLoop] = useState(null);
   const [waveformStatus, setWaveformStatus] = useState('idle');
   const [waveformError, setWaveformError] = useState('');
   const [error, setError] = useState('');
 
   const label = `DECK ${deckId}`;
+  const visibleWindowSeconds = Math.min(waveformWindowSeconds, duration || waveformWindowSeconds);
+  const waveformEnd = Math.min(duration, waveformStart + visibleWindowSeconds);
   const headroom = 10 ** (-Math.max(0, eq.low, eq.mid, eq.high) / 20);
   const outputGain = Math.min(1, Math.max(0, channelVolume * outputMix * headroom));
 
@@ -52,11 +66,16 @@ export default function Deck({
     audio.currentTime = 0;
     setCurrentTime(0);
     setDuration(0);
+    setWaveformStart(0);
     setWaveformPeaks([]);
     setWaveformError('');
     setWaveformStatus(track ? 'waiting' : 'idle');
     setError('');
     setIsPlaying(false);
+    setPitch(0);
+    onPitchChange?.(0);
+    loopRef.current = null;
+    setActiveLoop(null);
     waveformRequestRef.current += 1;
 
     if (track) {
@@ -70,7 +89,7 @@ export default function Deck({
     return () => {
       waveformRequestRef.current += 1;
     };
-  }, [track]);
+  }, [track?.id, track?.url]);
 
   useEffect(() => {
     const graph = audioGraphRef.current;
@@ -105,41 +124,63 @@ export default function Deck({
       context.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
       context.clearRect(0, 0, bounds.width, bounds.height);
 
-      const center = bounds.height / 2;
-      const progress = duration > 0 ? Math.min(1, currentTime / duration) : 0;
-      const playedWidth = bounds.width * progress;
+      const rulerHeight = 18;
+      const waveformHeight = bounds.height - rulerHeight;
+      const center = waveformHeight / 2;
+      const visibleDuration = Math.max(0.01, waveformEnd - waveformStart);
+      const visiblePeaks = waveformPeaks.slice(
+        Math.floor(waveformStart * 20),
+        Math.ceil(waveformEnd * 20),
+      );
+      const progress = (currentTime - waveformStart) / visibleDuration;
+      const playedWidth = Math.max(0, Math.min(bounds.width, bounds.width * progress));
       const color = getComputedStyle(canvas).getPropertyValue('--_deck-color').trim() || '#8b5cf6';
-      const barWidth = Math.max(1, (bounds.width / Math.max(waveformPeaks.length, 1)) * 0.62);
-      const playedGradient = context.createLinearGradient(0, 0, 0, bounds.height);
+      const barSpacing = bounds.width / Math.max(visiblePeaks.length, 1);
+      const barWidth = Math.max(1, barSpacing * 0.7);
+      const playedGradient = context.createLinearGradient(0, 0, 0, waveformHeight);
       playedGradient.addColorStop(0, color);
       playedGradient.addColorStop(0.5, 'rgba(255,255,255,0.88)');
       playedGradient.addColorStop(1, color);
 
-      context.strokeStyle = 'rgba(255,255,255,0.08)';
+      context.strokeStyle = 'rgba(255,255,255,0.12)';
       context.lineWidth = 1;
       context.beginPath();
       context.moveTo(0, center + 0.5);
       context.lineTo(bounds.width, center + 0.5);
       context.stroke();
 
-      waveformPeaks.forEach((peak, index) => {
-        const x = (index / waveformPeaks.length) * bounds.width;
-        const barHeight = Math.max(2, peak * (bounds.height * 0.84));
+      const tickSeconds = waveformWindowSeconds === 30 ? 5 : 10;
+      context.font = '9px ui-monospace, monospace';
+      context.textBaseline = 'bottom';
+      for (let tick = Math.ceil(waveformStart / tickSeconds) * tickSeconds; tick <= waveformEnd; tick += tickSeconds) {
+        const x = ((tick - waveformStart) / visibleDuration) * bounds.width;
+        context.strokeStyle = 'rgba(255,255,255,0.08)';
+        context.beginPath();
+        context.moveTo(x + 0.5, 0);
+        context.lineTo(x + 0.5, waveformHeight);
+        context.stroke();
+        context.fillStyle = 'rgba(201,210,229,0.65)';
+        context.fillText(formatTime(tick), Math.min(bounds.width - 30, x + 3), bounds.height - 2);
+      }
+
+      visiblePeaks.forEach((peak, index) => {
+        const x = index * barSpacing;
+        const barHeight = Math.max(2, Math.sqrt(peak) * (waveformHeight * 0.86));
         context.fillStyle = x < playedWidth ? playedGradient : 'rgba(179,190,215,0.42)';
         context.fillRect(x, center - barHeight / 2, barWidth, barHeight);
       });
 
-      if (waveformPeaks.length > 0) {
+      if (waveformPeaks.length > 0 && currentTime >= waveformStart && currentTime <= waveformEnd) {
         context.fillStyle = '#ffffff';
         context.shadowColor = color;
         context.shadowBlur = 7;
-        context.fillRect(Math.min(playedWidth, bounds.width - 1), 0, 1.5, bounds.height);
+        context.fillRect(Math.min(playedWidth, bounds.width - 1), 0, 1.5, waveformHeight);
         context.shadowBlur = 0;
       }
     };
 
     drawWaveformRef.current();
-  }, [currentTime, duration, waveformPeaks]);
+  }, [currentTime, duration, waveformEnd, waveformPeaks, waveformStart, waveformWindowSeconds]);
 
   useEffect(() => {
     const canvas = waveformCanvasRef.current;
@@ -206,6 +247,83 @@ export default function Deck({
     const nextTime = Math.min(duration, Math.max(0, time));
     audioRef.current.currentTime = nextTime;
     setCurrentTime(nextTime);
+    onPositionChange?.(nextTime);
+    if (nextTime < waveformStart || nextTime > waveformEnd) {
+      setWaveformStart(Math.floor(nextTime / waveformWindowSeconds) * waveformWindowSeconds);
+    }
+  };
+
+  const handleTimeUpdate = () => {
+    const time = audioRef.current?.currentTime || 0;
+    if (loopRef.current && time >= loopRef.current.end) {
+      audioRef.current.currentTime = loopRef.current.start;
+      setCurrentTime(loopRef.current.start);
+      onPositionChange?.(loopRef.current.start);
+      return;
+    }
+
+    setCurrentTime(time);
+    onPositionChange?.(time);
+    if (time < waveformStart || time >= waveformStart + waveformWindowSeconds) {
+      setWaveformStart(Math.floor(time / waveformWindowSeconds) * waveformWindowSeconds);
+    }
+  };
+
+  const updatePitch = (value) => {
+    const nextPitch = Math.max(-12, Math.min(12, value));
+    setPitch(nextPitch);
+    onPitchChange?.(nextPitch);
+  };
+
+  const handleSync = () => {
+    const sourceBpm = Number(syncBpm);
+    const targetBpm = Number(track?.bpm);
+    if (!Number.isFinite(sourceBpm) || !Number.isFinite(targetBpm) || sourceBpm <= 0 || targetBpm <= 0) {
+      setError('Sync ke liye dono tracks ka BPM pehle analyze hona chahiye.');
+      return;
+    }
+
+    const requestedPitch = ((sourceBpm * (1 + syncPitch / 100) / targetBpm) - 1) * 100;
+    const nextPitch = Math.round(Math.max(-12, Math.min(12, requestedPitch)));
+    const matchedBpm = targetBpm * (1 + nextPitch / 100);
+    const sourceBeat = Math.round((syncTime * sourceBpm) / 60);
+    const targetBeatTime = (sourceBeat * 60) / targetBpm;
+    updatePitch(nextPitch);
+    seekTo(targetBeatTime);
+    setError('');
+
+    const limited = Math.abs(requestedPitch - nextPitch) >= 0.5
+      ? ' Pitch limit ±12% reached; BPM match is partial.'
+      : '';
+    onSyncFeedback?.(
+      `Deck ${deckId} synced near beat ${sourceBeat + 1} at ${matchedBpm.toFixed(1)} BPM. BPM estimates are approximate.${limited}`,
+    );
+  };
+
+  const handleLoopToggle = () => {
+    if (activeLoop) {
+      loopRef.current = null;
+      setActiveLoop(null);
+      return;
+    }
+
+    const bpm = Number(track?.bpm);
+    if (!Number.isFinite(bpm) || bpm <= 0 || !duration) {
+      setError('Beat loop ke liye track BPM analysis complete hona zaroori hai.');
+      return;
+    }
+
+    const start = currentTime;
+    const end = start + (loopBeats * 60) / bpm;
+    if (end > duration) {
+      setError('Track ke end se pehle poora loop fit nahi hota. Playhead ko thoda peeche le jaayein.');
+      return;
+    }
+
+    const loop = { start, end };
+    loopRef.current = loop;
+    setActiveLoop(loop);
+    setError('');
   };
 
   const handlePlay = async () => {
@@ -246,10 +364,11 @@ export default function Deck({
     setWaveformStatus('analyzing');
     setWaveformError('');
     analyzeAudioFile(track.file, loadedDuration)
-      .then((peaks) => {
+      .then(({ peaks, bpm, confidence }) => {
         if (requestId !== waveformRequestRef.current) return;
         setWaveformPeaks(peaks);
         setWaveformStatus('ready');
+        onBpmChange?.(track.id, bpm, confidence);
       })
       .catch((analysisError) => {
         if (requestId !== waveformRequestRef.current) return;
@@ -273,6 +392,8 @@ export default function Deck({
     error: waveformError,
     unavailable: waveformError,
   }[waveformStatus];
+  const numericSyncBpm = Number(syncBpm);
+  const canSync = Boolean(track?.bpm && Number.isFinite(numericSyncBpm) && numericSyncBpm > 0);
 
   return (
     <div className="deck" style={{ '--_deck-color': deckColor }}>
@@ -287,8 +408,15 @@ export default function Deck({
 
         <div className="deck__header-right">
           <div className="deck__bpm">
-            <span className="deck__bpm-value">{track?.bpm ?? '—'}</span>
-            <span className="deck__bpm-label">BPM</span>
+            <span
+              className="deck__bpm-value"
+              title={track?.bpmConfidence != null ? `Approximate analysis confidence: ${track.bpmConfidence}%` : undefined}
+            >
+              {track?.bpm && track.bpm !== '—' ? `~${track.bpm}` : '—'}
+            </span>
+            <span className="deck__bpm-label">
+              {waveformStatus === 'analyzing' ? 'ANALYZING' : 'APPROX. BPM'}
+            </span>
           </div>
           <div className="deck__time">
             <span className="deck__time-value">
@@ -298,6 +426,51 @@ export default function Deck({
         </div>
       </header>
 
+      <div className="deck__waveform-toolbar">
+        <div className="deck__waveform-meta">
+          <span className="deck__waveform-title">AUDIO WAVEFORM</span>
+          <span className="deck__waveform-time-range">
+            {formatTime(waveformStart)} – {formatTime(waveformEnd)} / {formatTime(duration)}
+          </span>
+        </div>
+        <div className="deck__waveform-controls">
+          <button
+            type="button"
+            className="deck__waveform-nav"
+            aria-label="Previous waveform section"
+            disabled={!waveformPeaks.length || waveformStart <= 0}
+            onClick={() => setWaveformStart(Math.max(0, waveformStart - waveformWindowSeconds))}
+          >
+            ‹
+          </button>
+          {[30, 60].map((seconds) => (
+            <button
+              key={seconds}
+              type="button"
+              className={`deck__waveform-zoom ${waveformWindowSeconds === seconds ? 'deck__waveform-zoom--active' : ''}`}
+              aria-pressed={waveformWindowSeconds === seconds}
+              onClick={() => {
+                setWaveformWindowSeconds(seconds);
+                setWaveformStart(Math.floor(currentTime / seconds) * seconds);
+              }}
+            >
+              {seconds}s
+            </button>
+          ))}
+          <button
+            type="button"
+            className="deck__waveform-nav"
+            aria-label="Next waveform section"
+            disabled={!waveformPeaks.length || waveformStart + waveformWindowSeconds >= duration}
+            onClick={() => setWaveformStart(Math.min(
+              Math.max(0, duration - waveformWindowSeconds),
+              waveformStart + waveformWindowSeconds,
+            ))}
+          >
+            ›
+          </button>
+        </div>
+      </div>
       <div className={`deck__waveform-container ${waveformPeaks.length ? 'deck__waveform-container--ready' : ''}`}>
         <canvas
           ref={waveformCanvasRef}
@@ -305,13 +478,13 @@ export default function Deck({
           role="slider"
           tabIndex={waveformPeaks.length ? 0 : -1}
           aria-label={`Seek using Deck ${deckId} waveform`}
-          aria-valuemin={0}
-          aria-valuemax={Math.floor(duration)}
+          aria-valuemin={Math.floor(waveformStart)}
+          aria-valuemax={Math.floor(waveformEnd)}
           aria-valuenow={Math.floor(currentTime)}
           onPointerDown={(event) => {
             if (!waveformPeaks.length) return;
             const bounds = event.currentTarget.getBoundingClientRect();
-            seekTo(((event.clientX - bounds.left) / bounds.width) * duration);
+            seekTo(waveformStart + ((event.clientX - bounds.left) / bounds.width) * visibleWindowSeconds);
           }}
           onKeyDown={(event) => {
             if (event.key === 'ArrowLeft') seekTo(currentTime - 5);
@@ -371,7 +544,12 @@ export default function Deck({
         >
           ⏹
         </button>
-        <button className="deck__transport-btn deck__transport-btn--sync" title="Sync arrives in Phase 9" disabled>
+        <button
+          className="deck__transport-btn deck__transport-btn--sync"
+          title={canSync ? `Match this deck to Deck ${deckId === 'A' ? 'B' : 'A'} tempo and beat` : 'Both decks need analyzed BPM values'}
+          disabled={!canSync}
+          onClick={handleSync}
+        >
           SYNC
         </button>
       </div>
@@ -409,7 +587,7 @@ export default function Deck({
           max="12"
           step="1"
           value={pitch}
-          onChange={(event) => setPitch(Number(event.target.value))}
+          onChange={(event) => updatePitch(Number(event.target.value))}
           aria-label={`Deck ${deckId} pitch`}
         />
       </div>
@@ -424,12 +602,25 @@ export default function Deck({
 
       <div className="deck__loops">
         {['1', '2', '4', '8', '16'].map((beats) => (
-          <button key={beats} className="deck__loop-btn" title={`${beats} beat loop — Phase 9`} disabled>
+          <button
+            key={beats}
+            className={`deck__loop-btn ${loopBeats === Number(beats) ? 'deck__loop-btn--selected' : ''}`}
+            title={`${beats} beat loop at approximately ${track?.bpm || 'unknown'} BPM`}
+            disabled={!track?.bpm || track.bpm === '—'}
+            aria-pressed={loopBeats === Number(beats)}
+            onClick={() => setLoopBeats(Number(beats))}
+          >
             {beats}
           </button>
         ))}
-        <button className="deck__loop-btn deck__loop-btn--toggle" title="Loop — Phase 9" disabled>
-          LOOP
+        <button
+          className={`deck__loop-btn deck__loop-btn--toggle ${activeLoop ? 'deck__loop-btn--active' : ''}`}
+          title={activeLoop ? 'Deactivate beat loop' : 'Activate selected beat loop'}
+          disabled={!track?.bpm || track.bpm === '—'}
+          aria-pressed={Boolean(activeLoop)}
+          onClick={handleLoopToggle}
+        >
+          {activeLoop ? 'ON' : 'LOOP'}
         </button>
       </div>
 
@@ -438,7 +629,7 @@ export default function Deck({
         ref={audioRef}
         preload="metadata"
         onLoadedMetadata={handleMetadata}
-        onTimeUpdate={() => setCurrentTime(audioRef.current.currentTime)}
+        onTimeUpdate={handleTimeUpdate}
         onPlay={() => {
           setIsPlaying(true);
           onPlayingChange?.(true);

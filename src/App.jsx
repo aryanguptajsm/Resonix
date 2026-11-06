@@ -12,7 +12,10 @@ const DEVELOPMENT_STAGES = [
   { id: 'phase-4', label: 'Phase 4', name: 'Mixer & crossfader', done: true },
   { id: 'phase-5', label: 'Phase 5', name: '3-band EQ', done: true },
   { id: 'phase-6', label: 'Phase 6', name: 'Real waveforms', done: true },
-  { id: 'phase-7', label: 'Phase 7', name: 'BPM detection', done: false },
+  { id: 'phase-7', label: 'Phase 7', name: 'Approx. BPM detection', done: true },
+  { id: 'phase-8', label: 'Phase 8', name: 'Sync & pitch', done: true },
+  { id: 'phase-9', label: 'Phase 9', name: 'Beat loops', done: true },
+  { id: 'phase-10', label: 'Phase 10', name: 'Audio effects', done: false },
 ];
 
 function App() {
@@ -24,6 +27,8 @@ function App() {
     A: { low: 0, mid: 0, high: 0 },
     B: { low: 0, mid: 0, high: 0 },
   });
+  const [deckPitch, setDeckPitch] = useState({ A: 0, B: 0 });
+  const [deckTimes, setDeckTimes] = useState({ A: 0, B: 0 });
   const [crossfader, setCrossfader] = useState(0);
   const [notice, setNotice] = useState('');
   const objectUrls = useRef(new Set());
@@ -89,6 +94,20 @@ function App() {
     )));
   };
 
+  const handleBpmChange = (trackId, bpm, confidence) => {
+    const bpmValue = bpm ? String(bpm) : '—';
+    const updateTrack = (track) => (
+      track?.id === trackId ? { ...track, bpm: bpmValue, bpmConfidence: confidence } : track
+    );
+    setTracks((currentTracks) => currentTracks.map(updateTrack));
+    setDeckTracks((currentDecks) => ({
+      A: updateTrack(currentDecks.A),
+      B: updateTrack(currentDecks.B),
+    }));
+  };
+
+  const handleSyncFeedback = (message) => setNotice(message);
+
   const status = Object.values(playingDecks).some(Boolean)
     ? 'Playing'
     : tracks.length > 0
@@ -126,7 +145,14 @@ function App() {
           channelVolume={deckLevels.A}
           outputMix={getDeckOutputVolume('A')}
           eq={deckEq.A}
+          syncBpm={deckTracks.B?.bpm}
+          syncTime={deckTimes.B}
+          syncPitch={deckPitch.B}
           onDurationChange={handleDurationChange}
+          onBpmChange={handleBpmChange}
+          onPositionChange={(time) => setDeckTimes((current) => ({ ...current, A: time }))}
+          onPitchChange={(value) => setDeckPitch((current) => ({ ...current, A: value }))}
+          onSyncFeedback={handleSyncFeedback}
           onEqChange={(band, value) => setDeckEq((current) => ({
             ...current,
             A: { ...current.A, [band]: value },
@@ -141,7 +167,14 @@ function App() {
           channelVolume={deckLevels.B}
           outputMix={getDeckOutputVolume('B')}
           eq={deckEq.B}
+          syncBpm={deckTracks.A?.bpm}
+          syncTime={deckTimes.A}
+          syncPitch={deckPitch.A}
           onDurationChange={handleDurationChange}
+          onBpmChange={handleBpmChange}
+          onPositionChange={(time) => setDeckTimes((current) => ({ ...current, B: time }))}
+          onPitchChange={(value) => setDeckPitch((current) => ({ ...current, B: value }))}
+          onSyncFeedback={handleSyncFeedback}
           onEqChange={(band, value) => setDeckEq((current) => ({
             ...current,
             B: { ...current.B, [band]: value },

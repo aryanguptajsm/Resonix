@@ -1,18 +1,22 @@
 const MAX_DECODED_BYTES = 192 * 1024 * 1024;
-const WAVEFORM_BAR_COUNT = 220;
+const WAVEFORM_SAMPLES_PER_SECOND = 20;
+const BPM_ANALYSIS_SAMPLE_RATE = 100;
+const BPM_ANALYSIS_MAX_SECONDS = 120;
 const waveformCache = new WeakMap();
 let analysisQueue = Promise.resolve();
 
-export function extractWaveformPeaks(audioBuffer, barCount = WAVEFORM_BAR_COUNT) {
+export function extractWaveformPeaks(audioBuffer, samplesPerSecond = WAVEFORM_SAMPLES_PER_SECOND) {
   const channelCount = audioBuffer.numberOfChannels;
   const channels = Array.from({ length: channelCount }, (_, channel) => (
     audioBuffer.getChannelData(channel)
   ));
-  const peaks = new Array(barCount);
+  const samplesPerWindow = Math.max(1, Math.round(audioBuffer.sampleRate / samplesPerSecond));
+  const peakCount = Math.ceil(audioBuffer.length / samplesPerWindow);
+  const peaks = new Array(peakCount);
 
-  for (let bar = 0; bar < barCount; bar += 1) {
-    const start = Math.floor((bar / barCount) * audioBuffer.length);
-    const end = Math.max(start + 1, Math.floor(((bar + 1) / barCount) * audioBuffer.length));
+  for (let bar = 0; bar < peakCount; bar += 1) {
+    const start = bar * samplesPerWindow;
+    const end = Math.min(audioBuffer.length, start + samplesPerWindow);
     let peak = 0;
 
     for (let sample = start; sample < end; sample += 1) {
@@ -25,6 +29,87 @@ export function extractWaveformPeaks(audioBuffer, barCount = WAVEFORM_BAR_COUNT)
   }
 
   return peaks;
+}
+
+export function detectBpm(audioBuffer) {
+  const channels = Array.from({ length: audioBuffer.numberOfChannels }, (_, channel) => (
+    audioBuffer.getChannelData(channel)
+  ));
+  const frameSize = Math.max(1, Math.round(audioBuffer.sampleRate / BPM_ANALYSIS_SAMPLE_RATE));
+  const frameCount = Math.min(
+    Math.floor(audioBuffer.length / frameSize),
+    BPM_ANALYSIS_MAX_SECONDS * BPM_ANALYSIS_SAMPLE_RATE,
+  );
+  const energy = new Float32Array(frameCount);
+
+  for (let frame = 0; frame < frameCount; frame += 1) {
+    const start = frame * frameSize;
+    const end = Math.min(audioBuffer.length, start + frameSize);
+    let sum = 0;
+    let sampleCount = 0;
+    for (const channel of channels) {
+      for (let sample = start; sample < end; sample += 1) {
+        const amplitude = channel[sample];
+        sum += amplitude * amplitude;
+        sampleCount += 1;
+      }
+    }
+    energy[frame] = sampleCount ? Math.sqrt(sum / sampleCount) : 0;
+  }
+
+  const onsetStrength = new Float32Array(frameCount);
+  let onsetTotal = 0;
+  for (let frame = 1; frame < frameCount; frame += 1) {
+    const increase = Math.max(0, energy[frame] - energy[frame - 1]);
+    onsetStrength[frame] = increase;
+    onsetTotal += increase;
+  }
+
+  const meanOnset = onsetTotal / Math.max(1, frameCount - 1);
+  if (frameCount < 500 || meanOnset < 0.00001) {
+    return { bpm: null, confidence: 0 };
+  }
+
+  const minimumLag = Math.floor((60 * BPM_ANALYSIS_SAMPLE_RATE) / 180);
+  const maximumLag = Math.ceil((60 * BPM_ANALYSIS_SAMPLE_RATE) / 70);
+  let bestLag = 0;
+  let bestScore = 0;
+  let scoreTotal = 0;
+  let scoreCount = 0;
+
+  for (let lag = minimumLag; lag <= maximumLag; lag += 1) {
+    let dotProduct = 0;
+    let currentEnergy = 0;
+    let delayedEnergy = 0;
+    for (let frame = lag; frame < frameCount; frame += 1) {
+      const current = onsetStrength[frame];
+      const delayed = onsetStrength[frame - lag];
+      dotProduct += current * delayed;
+      currentEnergy += current * current;
+      delayedEnergy += delayed * delayed;
+    }
+
+    const denominator = Math.sqrt(currentEnergy * delayedEnergy);
+    const score = denominator ? dotProduct / denominator : 0;
+    scoreTotal += score;
+    scoreCount += 1;
+    if (score > bestScore) {
+      bestScore = score;
+      bestLag = lag;
+    }
+  }
+
+  if (!bestLag || bestScore < 0.08) {
+    return { bpm: null, confidence: 0 };
+  }
+
+  const meanScore = scoreTotal / Math.max(1, scoreCount);
+  const confidence = Math.max(0, Math.min(1, (bestScore - meanScore) / (1 - meanScore)));
+  const estimatedBpm = (60 * BPM_ANALYSIS_SAMPLE_RATE) / bestLag;
+  return {
+    bpm: Math.round(estimatedBpm),
+    confidence: Math.round(confidence * 100),
+  };
 }
 
 async function decodeWaveform(file, duration) {
@@ -41,7 +126,10 @@ async function decodeWaveform(file, duration) {
   try {
     const encodedAudio = await file.arrayBuffer();
     const audioBuffer = await context.decodeAudioData(encodedAudio);
-    return extractWaveformPeaks(audioBuffer);
+    return {
+      peaks: extractWaveformPeaks(audioBuffer),
+      ...detectBpm(audioBuffer),
+    };
   } finally {
     await context.close();
   }
