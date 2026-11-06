@@ -1,9 +1,23 @@
 import './Mixer.css';
 
-function Mixer({ deckLevels, crossfader, onDeckLevelChange, onCrossfaderChange }) {
-  const blendLabel = crossfader < -0.2
+const EQ_BANDS = [
+  { id: 'low', label: 'LOW' },
+  { id: 'mid', label: 'MID' },
+  { id: 'high', label: 'HIGH' },
+];
+
+function Mixer({
+  deckLevels,
+  deckEq,
+  crossfader,
+  onDeckLevelChange,
+  onEqChange,
+  onEqReset,
+  onCrossfaderChange,
+}) {
+  const blendLabel = crossfader < -0.02
     ? 'A focus'
-    : crossfader > 0.2
+    : crossfader > 0.02
       ? 'B focus'
       : 'Center mix';
 
@@ -13,37 +27,48 @@ function Mixer({ deckLevels, crossfader, onDeckLevelChange, onCrossfaderChange }
         <span className="mixer__title">MIXER</span>
       </div>
 
-      <div className="mixer__channel-control">
-        <div className="mixer__label-row">
-          <span>Deck A</span>
-          <span>{Math.round(deckLevels.A * 100)}%</span>
-        </div>
-        <input
-          type="range"
-          min="0"
-          max="1"
-          step="0.01"
-          value={deckLevels.A}
-          onChange={(event) => onDeckLevelChange?.('A', Number(event.target.value))}
-          aria-label="Deck A channel level"
-        />
-      </div>
-
-      <div className="mixer__channel-control">
-        <div className="mixer__label-row">
-          <span>Deck B</span>
-          <span>{Math.round(deckLevels.B * 100)}%</span>
-        </div>
-        <input
-          type="range"
-          min="0"
-          max="1"
-          step="0.01"
-          value={deckLevels.B}
-          onChange={(event) => onDeckLevelChange?.('B', Number(event.target.value))}
-          aria-label="Deck B channel level"
-        />
-      </div>
+      {['A', 'B'].map((deckId) => (
+        <section key={deckId} className="mixer__channel">
+          <div className="mixer__channel-heading">
+            <h2>DECK {deckId}</h2>
+            <button type="button" onClick={() => onEqReset?.(deckId)}>EQ RESET</button>
+          </div>
+          <div className="mixer__channel-control">
+            <div className="mixer__label-row">
+              <label htmlFor={`channel-${deckId}`}>LEVEL</label>
+              <span>{Math.round(deckLevels[deckId] * 100)}%</span>
+            </div>
+            <input
+              id={`channel-${deckId}`}
+              type="range"
+              min="0"
+              max="1"
+              step="0.01"
+              value={deckLevels[deckId]}
+              onChange={(event) => onDeckLevelChange?.(deckId, Number(event.target.value))}
+              aria-label={`Deck ${deckId} channel level`}
+            />
+          </div>
+          <div className="mixer__eq">
+            {EQ_BANDS.map(({ id, label }) => (
+              <label key={id} className="mixer__eq-control" htmlFor={`eq-${deckId}-${id}`}>
+                <span>{label}</span>
+                <strong>{deckEq[deckId][id] > 0 ? '+' : ''}{deckEq[deckId][id]} dB</strong>
+                <input
+                  id={`eq-${deckId}-${id}`}
+                  type="range"
+                  min="-12"
+                  max="12"
+                  step="1"
+                  value={deckEq[deckId][id]}
+                  onChange={(event) => onEqChange?.(deckId, id, Number(event.target.value))}
+                  aria-label={`Deck ${deckId} ${label.toLowerCase()} EQ`}
+                />
+              </label>
+            ))}
+          </div>
+        </section>
+      ))}
 
       <div className="mixer__crossfader-block">
         <div className="mixer__label-row mixer__label-row--crossfader">
@@ -63,14 +88,9 @@ function Mixer({ deckLevels, crossfader, onDeckLevelChange, onCrossfaderChange }
         />
       </div>
 
-      <div className="mixer__status">
-        <span>MASTER</span>
-        <strong>{crossfader === 0 ? 'Balanced' : crossfader < 0 ? 'A Lead' : 'B Lead'}</strong>
-      </div>
-
-      <div className="mixer__phase-note">
-        Phase 4 complete: channel gain and crossfader are now live. EQ aur waveform tasks follow next.
-      </div>
+      <p className="mixer__phase-note">
+        EQ signal chain is live. Boosted bands automatically reduce output headroom to help prevent clipping.
+      </p>
     </aside>
   );
 }

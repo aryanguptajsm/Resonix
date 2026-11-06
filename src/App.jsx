@@ -10,8 +10,9 @@ const DEVELOPMENT_STAGES = [
   { id: 'phase-2', label: 'Phase 2', name: 'Local music import', done: true },
   { id: 'phase-3', label: 'Phase 3', name: 'Dual-deck playback', done: true },
   { id: 'phase-4', label: 'Phase 4', name: 'Mixer & crossfader', done: true },
-  { id: 'phase-5', label: 'Phase 5', name: 'EQ & gain staging', done: false },
-  { id: 'phase-6', label: 'Phase 6', name: 'Waveform analysis', done: false },
+  { id: 'phase-5', label: 'Phase 5', name: '3-band EQ', done: true },
+  { id: 'phase-6', label: 'Phase 6', name: 'Real waveforms', done: true },
+  { id: 'phase-7', label: 'Phase 7', name: 'BPM detection', done: false },
 ];
 
 function App() {
@@ -19,6 +20,10 @@ function App() {
   const [deckTracks, setDeckTracks] = useState({ A: null, B: null });
   const [playingDecks, setPlayingDecks] = useState({ A: false, B: false });
   const [deckLevels, setDeckLevels] = useState({ A: 0.8, B: 0.8 });
+  const [deckEq, setDeckEq] = useState({
+    A: { low: 0, mid: 0, high: 0 },
+    B: { low: 0, mid: 0, high: 0 },
+  });
   const [crossfader, setCrossfader] = useState(0);
   const [notice, setNotice] = useState('');
   const objectUrls = useRef(new Set());
@@ -57,6 +62,7 @@ function App() {
         bpm: '—',
         key: '—',
         duration: null,
+        file,
         url,
       };
     });
@@ -118,8 +124,13 @@ function App() {
           deckColor="var(--deck-a-color)"
           track={deckTracks.A}
           channelVolume={deckLevels.A}
-          masterVolume={getDeckOutputVolume('A')}
+          outputMix={getDeckOutputVolume('A')}
+          eq={deckEq.A}
           onDurationChange={handleDurationChange}
+          onEqChange={(band, value) => setDeckEq((current) => ({
+            ...current,
+            A: { ...current.A, [band]: value },
+          }))}
           onVolumeChange={(value) => setDeckLevels((current) => ({ ...current, A: value }))}
           onPlayingChange={(isPlaying) => setPlayingDecks((current) => ({ ...current, A: isPlaying }))}
         />
@@ -128,15 +139,29 @@ function App() {
           deckColor="var(--deck-b-color)"
           track={deckTracks.B}
           channelVolume={deckLevels.B}
-          masterVolume={getDeckOutputVolume('B')}
+          outputMix={getDeckOutputVolume('B')}
+          eq={deckEq.B}
           onDurationChange={handleDurationChange}
+          onEqChange={(band, value) => setDeckEq((current) => ({
+            ...current,
+            B: { ...current.B, [band]: value },
+          }))}
           onVolumeChange={(value) => setDeckLevels((current) => ({ ...current, B: value }))}
           onPlayingChange={(isPlaying) => setPlayingDecks((current) => ({ ...current, B: isPlaying }))}
         />
         <Mixer
           deckLevels={deckLevels}
+          deckEq={deckEq}
           crossfader={crossfader}
           onDeckLevelChange={(deckId, value) => setDeckLevels((current) => ({ ...current, [deckId]: value }))}
+          onEqChange={(deckId, band, value) => setDeckEq((current) => ({
+            ...current,
+            [deckId]: { ...current[deckId], [band]: value },
+          }))}
+          onEqReset={(deckId) => setDeckEq((current) => ({
+            ...current,
+            [deckId]: { low: 0, mid: 0, high: 0 },
+          }))}
           onCrossfaderChange={setCrossfader}
         />
       </main>

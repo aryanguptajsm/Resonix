@@ -1,6 +1,6 @@
 .mixer {
-  width: 180px;
-  min-width: 180px;
+  width: 230px;
+  min-width: 230px;
   padding: var(--space-md);
   display: flex;
   flex-direction: column;
@@ -23,11 +23,43 @@
 }
 
 .mixer__channel-control,
-.mixer__crossfader-block,
-.mixer__status {
+.mixer__crossfader-block {
   display: flex;
   flex-direction: column;
   gap: 8px;
+}
+
+.mixer__channel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-bottom: var(--space-md);
+  border-bottom: 1px solid var(--divider);
+}
+
+.mixer__channel-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.mixer__channel-heading h2 {
+  color: var(--text-primary);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+}
+
+.mixer__channel-heading button {
+  border: 0;
+  background: transparent;
+  color: var(--text-tertiary);
+  font-size: 8px;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+}
+
+.mixer__channel-heading button:hover {
+  color: var(--text-primary);
 }
 
 .mixer__label-row {
@@ -50,28 +82,38 @@
   accent-color: var(--accent-primary);
 }
 
+.mixer__eq {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.mixer__eq-control {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 5px;
+  color: var(--text-tertiary);
+  font-size: 8px;
+  letter-spacing: 0.06em;
+}
+
+.mixer__eq-control strong {
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 500;
+}
+
+.mixer__eq-control input {
+  width: 100%;
+  margin: 0;
+  accent-color: var(--accent-blue);
+}
+
 .mixer__crossfader-block {
   padding-top: var(--space-sm);
   border-top: 1px solid var(--divider);
-}
-
-.mixer__status {
-  padding: 10px 12px;
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-md);
-  background: rgba(59, 130, 246, 0.06);
-}
-
-.mixer__status span {
-  color: var(--text-tertiary);
-  font-size: 9px;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-}
-
-.mixer__status strong {
-  color: var(--text-primary);
-  font-size: var(--font-size-sm);
 }
 
 .mixer__phase-note {

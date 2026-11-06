@@ -17,7 +17,7 @@
 .main-area {
   flex: 1;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 180px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 230px;
   gap: var(--space-sm);
   padding: var(--space-sm);
   min-height: 0;
