@@ -1,0 +1,292 @@
+/* =========================================================
+   Library — Bottom panel track browser
+   Resembles Rekordbox-style library: header tabs, scrollable
+   track grid, and a tiny status bar.
+   ========================================================= */
+
+/* ── Container ──────────────────────────────── */
+.library {
+  height: var(--library-height, 220px);
+  background: var(--bg-secondary);
+  border-top: 1px solid var(--border-color, #2a2a38);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  user-select: none;
+}
+
+/* ── 1. Header Bar ──────────────────────────── */
+.library__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--space-sm, 8px);
+  height: 36px;
+  min-height: 36px;
+  background: var(--bg-tertiary, #1a1a24);
+  border-bottom: 1px solid var(--border-color, #2a2a38);
+}
+
+/* Tab strip */
+.library__tabs {
+  display: flex;
+  gap: var(--space-xs, 4px);
+}
+
+.library__tab {
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text-tertiary, #6b6b80);
+  font-family: var(--font-primary, sans-serif);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  padding: 8px 12px;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.library__tab:hover {
+  color: var(--text-secondary, #a0a0b8);
+}
+
+.library__tab--active {
+  color: var(--text-primary, #f0f0f5);
+  border-bottom-color: var(--accent-primary, #7c3aed);
+}
+
+/* Right-side actions (search + import) */
+.library__header-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm, 8px);
+}
+
+/* Search input wrapper */
+.library__search-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.library__search-icon {
+  position: absolute;
+  left: 8px;
+  font-size: 12px;
+  pointer-events: none;
+  opacity: 0.6;
+}
+
+.library__search {
+  width: 180px;
+  height: 26px;
+  padding: 0 10px 0 28px;
+  background: var(--bg-tertiary, #1a1a24);
+  border: 1px solid var(--border-color, #2a2a38);
+  border-radius: var(--radius-full, 9999px);
+  color: var(--text-secondary, #a0a0b8);
+  font-family: var(--font-primary, sans-serif);
+  font-size: 12px;
+  outline: none;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.library__search::placeholder {
+  color: var(--text-tertiary, #6b6b80);
+}
+
+.library__search:focus {
+  border-color: var(--accent-primary, #7c3aed);
+  background: var(--bg-elevated, #22222e);
+}
+
+/* Import button */
+.library__import-btn {
+  height: 26px;
+  padding: 0 12px;
+  background: transparent;
+  border: 1px solid var(--accent-primary, #7c3aed);
+  border-radius: var(--radius-sm, 4px);
+  color: var(--accent-primary, #7c3aed);
+  font-family: var(--font-primary, sans-serif);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  white-space: nowrap;
+}
+
+.library__import-btn:hover {
+  background: var(--accent-primary, #7c3aed);
+  color: var(--text-primary, #f0f0f5);
+}
+
+/* ── 2. Track List (Grid) ───────────────────── */
+.library__tracklist {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* Thin custom scrollbar to match dark theme */
+.library__tracklist::-webkit-scrollbar {
+  width: 6px;
+}
+.library__tracklist::-webkit-scrollbar-track {
+  background: transparent;
+}
+.library__tracklist::-webkit-scrollbar-thumb {
+  background: var(--bg-surface, #2a2a38);
+  border-radius: 3px;
+}
+
+/* Grid row — shared by header & track rows
+   Columns:  #  Title  Artist  Album  BPM  Duration  Key  Actions */
+.library__row {
+  display: grid;
+  grid-template-columns: 36px 1.8fr 1.2fr 1fr 56px 72px 48px 110px;
+  align-items: center;
+  padding: 0 var(--space-sm, 8px);
+  min-height: 30px;
+}
+
+/* Header row */
+.library__row--header {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--bg-secondary, #111118);
+  border-bottom: 1px solid var(--border-color, #2a2a38);
+  min-height: 28px;
+}
+
+.library__row--header .library__cell {
+  color: var(--text-tertiary, #6b6b80);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* Track row */
+.library__row--track {
+  cursor: default;
+  transition: background 0.12s;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+.library__row--track:hover {
+  background: var(--bg-elevated, #22222e);
+}
+
+/* Individual cell */
+.library__cell {
+  font-family: var(--font-primary, sans-serif);
+  font-size: 12px;
+  color: var(--text-secondary, #a0a0b8);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding: 0 4px;
+}
+
+/* Monospaced cells for numbers */
+.library__cell--mono {
+  font-family: var(--font-mono, monospace);
+  font-size: 11px;
+}
+
+/* Row number column — dimmer */
+.library__cell--num {
+  color: var(--text-tertiary, #6b6b80);
+  text-align: center;
+  font-size: 11px;
+}
+
+/* Title column — brighter */
+.library__cell--title {
+  color: var(--text-primary, #f0f0f5);
+  font-weight: 500;
+}
+
+/* BPM — accent tint */
+.library__cell--bpm {
+  text-align: center;
+}
+
+/* Duration */
+.library__cell--duration {
+  text-align: center;
+}
+
+/* Key */
+.library__cell--key {
+  text-align: center;
+}
+
+/* ── Load-to-Deck Buttons (hover reveal) ──── */
+.library__cell--actions {
+  display: flex;
+  justify-content: flex-end;
+  overflow: visible;
+}
+
+.library__load-buttons {
+  display: flex;
+  gap: 4px;
+  animation: library-fade-in 0.12s ease-out;
+}
+
+@keyframes library-fade-in {
+  from { opacity: 0; transform: translateX(4px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+.library__load-btn {
+  height: 20px;
+  padding: 0 8px;
+  font-family: var(--font-primary, sans-serif);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  border: none;
+  border-radius: var(--radius-sm, 4px);
+  cursor: pointer;
+  transition: filter 0.12s;
+}
+
+.library__load-btn:hover {
+  filter: brightness(1.25);
+}
+
+/* Deck A — blue */
+.library__load-btn--a {
+  background: var(--deck-a-color, #3b82f6);
+  color: #fff;
+}
+
+/* Deck B — purple */
+.library__load-btn--b {
+  background: var(--deck-b-color, #a855f7);
+  color: #fff;
+}
+
+/* ── 3. Bottom Status Bar ───────────────────── */
+.library__status {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm, 8px);
+  height: 22px;
+  min-height: 22px;
+  padding: 0 var(--space-md, 16px);
+  background: var(--bg-tertiary, #1a1a24);
+  border-top: 1px solid var(--border-color, #2a2a38);
+  font-family: var(--font-primary, sans-serif);
+  font-size: 10px;
+  color: var(--text-tertiary, #6b6b80);
+}
+
+.library__status-sep {
+  opacity: 0.4;
+}

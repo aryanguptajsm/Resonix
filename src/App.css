@@ -21,3 +21,4 @@
   padding: var(--space-sm);
   min-height: 0;    /* Flexbox overflow fix */
 }
+

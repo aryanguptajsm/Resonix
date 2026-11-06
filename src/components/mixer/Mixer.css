@@ -1,0 +1,495 @@
+/* ============================================
+   Mixer Component Styles — RESONIX
+   ============================================
+   The central mixer panel between the two decks.
+   Fixed 220px width, dark theme, compact layout.
+   ============================================ */
+
+/* ---- Main Mixer Container ---- */
+.mixer {
+  width: 220px;
+  min-width: 220px;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-lg);
+  padding: var(--space-md);
+  display: flex;
+  flex-direction: column;
+  gap: 0;  /* Sections use divider borders instead of gaps */
+  overflow: hidden;
+}
+
+/* ============================================
+   Section 1: Header
+   ============================================ */
+.mixer__header {
+  text-align: center;
+  padding-bottom: var(--space-sm);
+  border-bottom: 1px solid var(--divider);
+}
+
+.mixer__title {
+  font-size: var(--font-size-xs);
+  color: var(--text-tertiary);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+/* ============================================
+   Generic Section Wrapper
+   Each section gets top padding and a divider
+   ============================================ */
+.mixer__section {
+  padding: var(--space-sm) 0;
+  border-bottom: 1px solid var(--divider);
+}
+
+/* Section titles (EQ, CROSSFADER, MASTER, FX) */
+.mixer__section-title {
+  display: block;
+  text-align: center;
+  font-size: var(--font-size-xs);
+  color: var(--text-tertiary);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-weight: 600;
+  margin-bottom: var(--space-xs);
+}
+
+/* ============================================
+   Section 2: Channel Volume Faders + Levels
+   ============================================ */
+.mixer__channels {
+  display: flex;
+  justify-content: center;
+  gap: var(--space-xl);
+}
+
+.mixer__channel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+/* Channel labels: "A" and "B" */
+.mixer__channel-label {
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  font-family: var(--font-mono);
+}
+
+.mixer__channel-label--a {
+  color: var(--deck-a-color);
+}
+
+.mixer__channel-label--b {
+  color: var(--deck-b-color);
+}
+
+/* Fader + level meter side-by-side wrapper */
+.mixer__fader-wrapper {
+  display: flex;
+  align-items: stretch;
+  gap: var(--space-xs);
+  height: 100px;
+}
+
+/* ---- Level Meter (placeholder) ---- */
+.mixer__level-meter {
+  width: 4px;
+  border-radius: var(--radius-full);
+  background: var(--bg-surface);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Colored fill that rises from the bottom */
+.mixer__level-fill {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  border-radius: var(--radius-full);
+  transition: height var(--transition-fast);
+}
+
+.mixer__level-fill--a {
+  background: var(--deck-a-color);
+}
+
+.mixer__level-fill--b {
+  background: var(--deck-b-color);
+}
+
+/* ============================================
+   Vertical Range Input (Faders & EQ)
+   Shared styling for all vertical sliders
+   ============================================ */
+
+/* Make vertical range inputs work cross-browser */
+.mixer__fader--vertical {
+  -webkit-appearance: slider-vertical;
+  appearance: slider-vertical;
+  writing-mode: vertical-lr;      /* Firefox fallback for vertical */
+  direction: rtl;                  /* So bottom = 0, top = max */
+  width: 28px;
+  height: 100%;
+  background: transparent;
+  cursor: pointer;
+}
+
+/* ---- Webkit Track (Chrome, Edge, Safari) ---- */
+.mixer__fader--vertical::-webkit-slider-runnable-track {
+  width: 4px;
+  background: var(--bg-surface);
+  border-radius: var(--radius-full);
+  border: none;
+}
+
+/* ---- Webkit Thumb ---- */
+.mixer__fader--vertical::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  margin-left: -5px; /* Center thumb on the narrow track */
+}
+
+/* Deck A thumb color */
+.mixer__fader--a::-webkit-slider-thumb {
+  background: var(--deck-a-color);
+  box-shadow: 0 0 6px var(--deck-a-glow);
+}
+
+/* Deck B thumb color */
+.mixer__fader--b::-webkit-slider-thumb {
+  background: var(--deck-b-color);
+  box-shadow: 0 0 6px var(--deck-b-glow);
+}
+
+/* Master thumb color */
+.mixer__fader--master::-webkit-slider-thumb {
+  background: var(--accent-primary);
+  box-shadow: 0 0 6px var(--accent-glow);
+}
+
+/* ---- Firefox Track ---- */
+.mixer__fader--vertical::-moz-range-track {
+  width: 4px;
+  background: var(--bg-surface);
+  border-radius: var(--radius-full);
+  border: none;
+}
+
+/* ---- Firefox Thumb ---- */
+.mixer__fader--vertical::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+}
+
+.mixer__fader--a::-moz-range-thumb {
+  background: var(--deck-a-color);
+  box-shadow: 0 0 6px var(--deck-a-glow);
+}
+
+.mixer__fader--b::-moz-range-thumb {
+  background: var(--deck-b-color);
+  box-shadow: 0 0 6px var(--deck-b-glow);
+}
+
+.mixer__fader--master::-moz-range-thumb {
+  background: var(--accent-primary);
+  box-shadow: 0 0 6px var(--accent-glow);
+}
+
+/* ============================================
+   Section 3: EQ Controls
+   ============================================ */
+.mixer__eq {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+/* Each EQ row: [slider A]  LABEL  [slider B] */
+.mixer__eq-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+}
+
+/* Band label (HI / MID / LO) */
+.mixer__eq-label {
+  font-size: var(--font-size-xs);
+  font-family: var(--font-mono);
+  color: var(--text-secondary);
+  width: 28px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+/* EQ sliders — small vertical inputs */
+.mixer__eq-slider {
+  -webkit-appearance: slider-vertical;
+  appearance: slider-vertical;
+  writing-mode: vertical-lr;
+  direction: rtl;
+  width: 24px;
+  height: 48px;
+  background: transparent;
+  cursor: pointer;
+}
+
+/* ---- EQ Webkit Track ---- */
+.mixer__eq-slider::-webkit-slider-runnable-track {
+  width: 3px;
+  background: var(--bg-surface);
+  border-radius: var(--radius-full);
+  border: none;
+}
+
+/* ---- EQ Webkit Thumb ---- */
+.mixer__eq-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  margin-left: -3.5px;
+}
+
+.mixer__eq-slider--a::-webkit-slider-thumb {
+  background: var(--deck-a-color);
+  box-shadow: 0 0 4px var(--deck-a-glow);
+}
+
+.mixer__eq-slider--b::-webkit-slider-thumb {
+  background: var(--deck-b-color);
+  box-shadow: 0 0 4px var(--deck-b-glow);
+}
+
+/* ---- EQ Firefox Track ---- */
+.mixer__eq-slider::-moz-range-track {
+  width: 3px;
+  background: var(--bg-surface);
+  border-radius: var(--radius-full);
+  border: none;
+}
+
+/* ---- EQ Firefox Thumb ---- */
+.mixer__eq-slider::-moz-range-thumb {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+}
+
+.mixer__eq-slider--a::-moz-range-thumb {
+  background: var(--deck-a-color);
+  box-shadow: 0 0 4px var(--deck-a-glow);
+}
+
+.mixer__eq-slider--b::-moz-range-thumb {
+  background: var(--deck-b-color);
+  box-shadow: 0 0 4px var(--deck-b-glow);
+}
+
+/* ============================================
+   Section 4: Crossfader
+   ============================================ */
+.mixer__crossfader {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+/* A / B labels on crossfader ends */
+.mixer__crossfader-label {
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  font-family: var(--font-mono);
+  flex-shrink: 0;
+}
+
+.mixer__crossfader-label--a {
+  color: var(--deck-a-color);
+}
+
+.mixer__crossfader-label--b {
+  color: var(--deck-b-color);
+}
+
+/* Horizontal crossfader slider */
+.mixer__crossfader-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  flex: 1;
+  height: 6px;
+  border-radius: var(--radius-full);
+  /* Gradient track from Deck A blue → Deck B purple */
+  background: linear-gradient(
+    to right,
+    var(--deck-a-color),
+    var(--bg-surface) 30%,
+    var(--bg-surface) 70%,
+    var(--deck-b-color)
+  );
+  outline: none;
+  cursor: pointer;
+}
+
+/* ---- Crossfader Webkit Thumb ---- */
+.mixer__crossfader-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--text-primary);
+  border: 2px solid var(--accent-primary);
+  box-shadow: 0 0 10px var(--accent-glow), 0 0 4px rgba(0, 0, 0, 0.5);
+  cursor: pointer;
+  transition: box-shadow var(--transition-fast);
+}
+
+.mixer__crossfader-slider::-webkit-slider-thumb:hover {
+  box-shadow: 0 0 16px var(--accent-glow), 0 0 6px rgba(0, 0, 0, 0.6);
+}
+
+/* ---- Crossfader Firefox Thumb ---- */
+.mixer__crossfader-slider::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--text-primary);
+  border: 2px solid var(--accent-primary);
+  box-shadow: 0 0 10px var(--accent-glow), 0 0 4px rgba(0, 0, 0, 0.5);
+  cursor: pointer;
+}
+
+/* Firefox track */
+.mixer__crossfader-slider::-moz-range-track {
+  height: 6px;
+  border-radius: var(--radius-full);
+  background: linear-gradient(
+    to right,
+    var(--deck-a-color),
+    var(--bg-surface) 30%,
+    var(--bg-surface) 70%,
+    var(--deck-b-color)
+  );
+  border: none;
+}
+
+/* ============================================
+   Section 5: Master Volume
+   ============================================ */
+.mixer__master {
+  display: flex;
+  justify-content: center;
+  height: 80px;
+}
+
+/* ============================================
+   Section 6: FX Buttons
+   ============================================ */
+.mixer__fx {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-xs);
+}
+
+.mixer__fx-btn {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  color: var(--text-tertiary);
+  font-size: var(--font-size-xs);
+  font-family: var(--font-mono);
+  font-weight: 600;
+  padding: var(--space-xs) 0;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  text-align: center;
+}
+
+.mixer__fx-btn:hover {
+  background: var(--bg-elevated);
+  color: var(--text-secondary);
+  border-color: var(--accent-primary);
+}
+
+/* Active FX button — glowing accent color */
+.mixer__fx-btn--active {
+  background: rgba(124, 58, 237, 0.15);
+  color: var(--accent-primary);
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 8px var(--accent-glow);
+}
+
+/* ============================================
+   Section 7: Record Button
+   ============================================ */
+.mixer__section--rec {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-xs);
+  padding-top: var(--space-sm);
+  border-bottom: none; /* Last section — no bottom divider */
+}
+
+.mixer__rec-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--bg-surface);
+  border: 2px solid var(--border-color);
+  color: var(--text-tertiary);
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-fast);
+}
+
+.mixer__rec-btn:hover {
+  border-color: var(--color-stopped);
+  color: var(--color-stopped);
+}
+
+/* Active recording state — red glow */
+.mixer__rec-btn--active {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: var(--color-stopped);
+  color: var(--color-stopped);
+  box-shadow: 0 0 12px rgba(239, 68, 68, 0.4);
+  animation: mixer-rec-pulse 1.5s ease-in-out infinite;
+}
+
+/* Pulsing animation for active recording */
+@keyframes mixer-rec-pulse {
+  0%, 100% {
+    box-shadow: 0 0 12px rgba(239, 68, 68, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(239, 68, 68, 0.7);
+  }
+}
+
+.mixer__rec-label {
+  font-size: var(--font-size-xs);
+  color: var(--text-tertiary);
+  font-family: var(--font-mono);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+}

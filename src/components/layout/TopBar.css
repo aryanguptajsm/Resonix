@@ -1,0 +1,195 @@
+/* ==============================================
+   TopBar — Top utility/navigation bar (48px)
+   ============================================== */
+
+.topbar {
+  display: flex;
+  align-items: center;
+  height: var(--topbar-height, 48px);
+  padding: 0 var(--space-md, 12px);
+  background: var(--bg-secondary, #111118);
+  border-bottom: 1px solid var(--border-color, #2a2a3a);
+  user-select: none;
+  z-index: 100;
+  flex-shrink: 0; /* prevent topbar from shrinking in flex layouts */
+}
+
+/* ---- Left section: logo + nav ---- */
+
+.topbar__left {
+  display: flex;
+  align-items: center;
+  gap: var(--space-lg, 20px);
+}
+
+/* Logo with vinyl icon */
+.topbar__logo {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs, 4px);
+}
+
+.topbar__logo-icon {
+  color: var(--accent-primary, #7c3aed);
+  flex-shrink: 0;
+}
+
+.topbar__logo-text {
+  font-family: var(--font-primary, sans-serif);
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 3px;
+  /* Premium purple gradient text */
+  background: linear-gradient(135deg, var(--accent-primary, #7c3aed), var(--accent-blue, #3b82f6));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Navigation links */
+.topbar__nav {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs, 4px);
+}
+
+.topbar__nav-link {
+  background: none;
+  border: none;
+  color: var(--text-secondary, #a0a0b8);
+  font-family: var(--font-primary, sans-serif);
+  font-size: 12px;
+  padding: var(--space-xs, 4px) var(--space-sm, 8px);
+  border-radius: var(--radius-sm, 4px);
+  cursor: pointer;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.topbar__nav-link:hover {
+  color: var(--text-primary, #f0f0f5);
+  background: var(--bg-tertiary, #1a1a24);
+}
+
+/* ---- Center spacer ---- */
+
+.topbar__spacer {
+  flex: 1;
+}
+
+/* ---- Right section: status, master, settings ---- */
+
+.topbar__right {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md, 12px);
+}
+
+/* Audio status indicator */
+.topbar__status {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs, 4px);
+}
+
+.topbar__status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: var(--radius-full, 50%);
+  background: var(--color-playing, #22c55e);
+  box-shadow: 0 0 6px rgba(34, 197, 94, 0.5);
+  flex-shrink: 0;
+}
+
+.topbar__status-text {
+  font-family: var(--font-primary, sans-serif);
+  font-size: 11px;
+  color: var(--text-secondary, #a0a0b8);
+}
+
+/* Master volume control */
+.topbar__master {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs, 4px);
+}
+
+.topbar__master-label {
+  font-family: var(--font-mono, monospace);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 1.5px;
+  color: var(--text-tertiary, #6b6b80);
+}
+
+/* Dark-styled range slider */
+.topbar__master-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 80px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--bg-surface, #2a2a38);
+  outline: none;
+  cursor: pointer;
+}
+
+/* Webkit track (already styled via background on input) */
+.topbar__master-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--accent-primary, #7c3aed);
+  border: 2px solid var(--bg-secondary, #111118);
+  cursor: pointer;
+  transition: box-shadow 0.15s ease;
+}
+
+.topbar__master-slider::-webkit-slider-thumb:hover {
+  box-shadow: 0 0 6px rgba(124, 58, 237, 0.5);
+}
+
+/* Firefox thumb */
+.topbar__master-slider::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--accent-primary, #7c3aed);
+  border: 2px solid var(--bg-secondary, #111118);
+  cursor: pointer;
+}
+
+.topbar__master-slider::-moz-range-track {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--bg-surface, #2a2a38);
+}
+
+/* Numeric volume readout */
+.topbar__master-value {
+  font-family: var(--font-mono, monospace);
+  font-size: 11px;
+  color: var(--text-secondary, #a0a0b8);
+  min-width: 22px;
+  text-align: right;
+}
+
+/* Settings gear button */
+.topbar__settings-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  color: var(--text-secondary, #a0a0b8);
+  padding: var(--space-xs, 4px);
+  border-radius: var(--radius-sm, 4px);
+  cursor: pointer;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.topbar__settings-btn:hover {
+  color: var(--text-primary, #f0f0f5);
+  background: var(--bg-tertiary, #1a1a24);
+}

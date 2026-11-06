@@ -1,0 +1,409 @@
+/* ═══════════════════════════════════════════════════════════════
+   Deck.css — Styling for a single DJ deck panel in RESONIX
+   Uses BEM-style naming.  The component sets the CSS variable
+   --_deck-color inline so every child can reference it.
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Container ─────────────────────────────────────────────── */
+.deck {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm, 8px);
+  padding: var(--space-md, 16px);
+  background: var(--bg-secondary, #111118);
+  border-radius: var(--radius-lg, 12px);
+  /* Colored accent line along the top */
+  border-top: 2px solid var(--_deck-color);
+  overflow: hidden;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   1. DECK HEADER
+   ══════════════════════════════════════════════════════════════ */
+.deck__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-sm, 8px);
+}
+
+/* Left side: label + track info */
+.deck__header-left {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0; /* allow text truncation */
+}
+
+.deck__label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--_deck-color);
+}
+
+.deck__track-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.deck__track-title {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary, #a0a0b8);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.deck__track-artist {
+  font-size: 11px;
+  color: var(--text-tertiary, #6b6b80);
+}
+
+/* Right side: BPM + time */
+.deck__header-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.deck__bpm {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.deck__bpm-value {
+  font-family: var(--font-mono, monospace);
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-primary, #f0f0f5);
+  line-height: 1;
+}
+
+.deck__bpm-label {
+  font-size: 9px;
+  letter-spacing: 1px;
+  color: var(--text-tertiary, #6b6b80);
+  text-transform: uppercase;
+}
+
+.deck__time-value {
+  font-family: var(--font-mono, monospace);
+  font-size: 12px;
+  color: var(--text-secondary, #a0a0b8);
+}
+
+/* ══════════════════════════════════════════════════════════════
+   2. WAVEFORM AREA
+   ══════════════════════════════════════════════════════════════ */
+.deck__waveform-container {
+  position: relative;
+  height: 80px;
+  background: var(--bg-primary, #0a0a0f);
+  border-radius: var(--radius-sm, 4px);
+  overflow: hidden;
+
+  /* Subtle grid pattern */
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+.deck__waveform-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* Playback progress indicator — sits at the bottom of the waveform */
+.deck__waveform-progress {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 0%;            /* 0 % until audio is playing */
+  height: 2px;
+  background: var(--_deck-color);
+  transition: width 0.1s linear;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   3. TRANSPORT CONTROLS
+   ══════════════════════════════════════════════════════════════ */
+.deck__transport {
+  display: flex;
+  gap: var(--space-xs, 4px);
+  justify-content: center;
+}
+
+.deck__transport-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 48px;
+  height: 32px;
+  padding: 0 var(--space-sm, 8px);
+  border: none;
+  border-radius: var(--radius-md, 8px);
+  background: var(--bg-elevated, #22222e);
+  color: var(--text-secondary, #a0a0b8);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, box-shadow 0.15s;
+}
+
+.deck__transport-btn:hover {
+  background: var(--bg-surface, #2a2a38);
+  color: var(--text-primary, #f0f0f5);
+}
+
+/* CUE — amber / yellow */
+.deck__transport-btn--cue {
+  color: var(--color-cue, #f59e0b);
+  border: 1px solid var(--color-cue, #f59e0b);
+}
+
+.deck__transport-btn--cue:hover {
+  background: rgba(245, 158, 11, 0.15);
+}
+
+/* PLAY / PAUSE — green accent */
+.deck__transport-btn--play {
+  color: var(--color-playing, #22c55e);
+  border: 1px solid var(--color-playing, #22c55e);
+}
+
+.deck__transport-btn--play:hover {
+  background: rgba(34, 197, 94, 0.15);
+}
+
+.deck__transport-btn--active {
+  background: rgba(34, 197, 94, 0.2);
+  box-shadow: 0 0 6px rgba(34, 197, 94, 0.35);
+}
+
+/* STOP — subtle */
+.deck__transport-btn--stop {
+  color: var(--text-tertiary, #6b6b80);
+}
+
+/* SYNC — accent colored */
+.deck__transport-btn--sync {
+  color: var(--accent-primary, #7c3aed);
+  border: 1px solid var(--accent-primary, #7c3aed);
+}
+
+.deck__transport-btn--sync:hover {
+  background: rgba(124, 58, 237, 0.15);
+}
+
+/* ══════════════════════════════════════════════════════════════
+   4 & 5. JOG WHEEL + PITCH SLIDER (side-by-side row)
+   ══════════════════════════════════════════════════════════════ */
+.deck__jog-pitch-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-lg, 24px);
+}
+
+/* ── 4. Jog Wheel ── */
+.deck__jog-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-xs, 4px);
+}
+
+.deck__jog {
+  width: 140px;
+  height: 140px;
+  border-radius: var(--radius-full, 9999px);
+  border: 2px solid var(--bg-surface, #2a2a38);
+  background: var(--bg-primary, #0a0a0f);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: grab;
+  transition: box-shadow 0.25s;
+}
+
+.deck__jog:hover {
+  box-shadow: 0 0 14px color-mix(in srgb, var(--_deck-color) 40%, transparent);
+}
+
+/* Inner concentric circle */
+.deck__jog-inner {
+  width: 80px;
+  height: 80px;
+  border-radius: var(--radius-full, 9999px);
+  border: 1px solid var(--bg-surface, #2a2a38);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Center dot */
+.deck__jog-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: var(--radius-full, 9999px);
+  background: var(--_deck-color);
+  opacity: 0.7;
+}
+
+.deck__jog-label {
+  font-size: 9px;
+  letter-spacing: 1.5px;
+  color: var(--text-tertiary, #6b6b80);
+  text-transform: uppercase;
+}
+
+/* ── 5. Pitch / Tempo Slider ── */
+.deck__pitch {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-xs, 4px);
+  height: 160px; /* match jog wheel height roughly */
+}
+
+.deck__pitch-label {
+  font-size: 9px;
+  letter-spacing: 1.5px;
+  color: var(--text-tertiary, #6b6b80);
+  text-transform: uppercase;
+}
+
+.deck__pitch-slider {
+  writing-mode: vertical-lr;     /* makes the slider vertical */
+  direction: rtl;                /* high value at top */
+  appearance: none;
+  -webkit-appearance: none;
+  width: 6px;
+  flex: 1;
+  background: var(--bg-elevated, #22222e);
+  border-radius: 3px;
+  outline: none;
+  cursor: pointer;
+}
+
+/* Thumb styling (Webkit / Blink) */
+.deck__pitch-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px;
+  height: 8px;
+  border-radius: 2px;
+  background: var(--_deck-color);
+  cursor: pointer;
+}
+
+/* Thumb styling (Firefox) */
+.deck__pitch-slider::-moz-range-thumb {
+  width: 16px;
+  height: 8px;
+  border: none;
+  border-radius: 2px;
+  background: var(--_deck-color);
+  cursor: pointer;
+}
+
+.deck__pitch-value {
+  font-family: var(--font-mono, monospace);
+  font-size: 11px;
+  color: var(--text-secondary, #a0a0b8);
+}
+
+/* ══════════════════════════════════════════════════════════════
+   6. HOT CUE BUTTONS
+   ══════════════════════════════════════════════════════════════ */
+.deck__hotcues {
+  display: flex;
+  gap: var(--space-xs, 4px);
+  justify-content: center;
+}
+
+.deck__hotcue-btn {
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: var(--radius-sm, 4px);
+  background: var(--bg-surface, #2a2a38);
+  color: var(--text-tertiary, #6b6b80);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.deck__hotcue-btn:hover {
+  background: var(--bg-elevated, #22222e);
+  color: var(--text-primary, #f0f0f5);
+}
+
+/* ══════════════════════════════════════════════════════════════
+   7. LOOP CONTROLS
+   ══════════════════════════════════════════════════════════════ */
+.deck__loops {
+  display: flex;
+  gap: var(--space-xs, 4px);
+  justify-content: center;
+}
+
+.deck__loop-btn {
+  min-width: 32px;
+  height: 26px;
+  padding: 0 var(--space-xs, 4px);
+  border: none;
+  border-radius: var(--radius-sm, 4px);
+  background: var(--bg-surface, #2a2a38);
+  color: var(--text-tertiary, #6b6b80);
+  font-size: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.deck__loop-btn:hover {
+  background: var(--bg-elevated, #22222e);
+  color: var(--text-primary, #f0f0f5);
+}
+
+/* LOOP toggle gets a subtle accent border */
+.deck__loop-btn--toggle {
+  border: 1px solid var(--_deck-color);
+  color: var(--_deck-color);
+  letter-spacing: 0.5px;
+}
+
+.deck__loop-btn--toggle:hover {
+  background: color-mix(in srgb, var(--_deck-color) 15%, transparent);
+}
+
+/* ══════════════════════════════════════════════════════════════
+   8. LOAD TRACK BUTTON
+   ══════════════════════════════════════════════════════════════ */
+.deck__load-btn {
+  width: 100%;
+  height: 34px;
+  border: 1px solid var(--_deck-color);
+  border-radius: var(--radius-md, 8px);
+  background: transparent;
+  color: var(--_deck-color);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.deck__load-btn:hover {
+  background: color-mix(in srgb, var(--_deck-color) 12%, transparent);
+}
