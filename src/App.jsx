@@ -5,16 +5,39 @@ import TopBar from './components/layout/TopBar.jsx';
 import Library from './components/library/Library.jsx';
 import Mixer from './components/mixer/Mixer.jsx';
 
+const DEVELOPMENT_STAGES = [
+  { id: 'phase-1', label: 'Phase 1', name: 'Interface shell', done: true },
+  { id: 'phase-2', label: 'Phase 2', name: 'Local music import', done: true },
+  { id: 'phase-3', label: 'Phase 3', name: 'Dual-deck playback', done: true },
+  { id: 'phase-4', label: 'Phase 4', name: 'Mixer & crossfader', done: true },
+  { id: 'phase-5', label: 'Phase 5', name: 'EQ & gain staging', done: false },
+  { id: 'phase-6', label: 'Phase 6', name: 'Waveform analysis', done: false },
+];
+
 function App() {
   const [tracks, setTracks] = useState([]);
   const [deckTracks, setDeckTracks] = useState({ A: null, B: null });
   const [playingDecks, setPlayingDecks] = useState({ A: false, B: false });
+  const [deckLevels, setDeckLevels] = useState({ A: 0.8, B: 0.8 });
+  const [crossfader, setCrossfader] = useState(0);
   const [notice, setNotice] = useState('');
   const objectUrls = useRef(new Set());
 
   useEffect(() => () => {
     objectUrls.current.forEach((url) => URL.revokeObjectURL(url));
   }, []);
+
+  const getDeckOutputVolume = (deckId) => {
+    const normalized = (crossfader + 1) / 2;
+    const leftMix = Math.cos(normalized * (Math.PI / 2));
+    const rightMix = Math.sin(normalized * (Math.PI / 2));
+
+    if (deckId === 'A') {
+      return leftMix;
+    }
+
+    return rightMix;
+  };
 
   const handleImport = (files) => {
     const acceptedFiles = files.filter((file) => (
@@ -77,22 +100,45 @@ function App() {
           </button>
         </div>
       )}
+      <div className="app__checklist" aria-label="Development checklist">
+        {DEVELOPMENT_STAGES.map((phase) => (
+          <div
+            key={phase.id}
+            className={`app__checklist-item ${phase.done ? 'app__checklist-item--done' : ''}`}
+          >
+            <span className="app__checklist-toggle">{phase.done ? '✓' : '•'}</span>
+            <span>{phase.label}</span>
+            <small>{phase.name}</small>
+          </div>
+        ))}
+      </div>
       <main className="main-area" id="decks">
         <Deck
           deckId="A"
           deckColor="var(--deck-a-color)"
           track={deckTracks.A}
+          channelVolume={deckLevels.A}
+          masterVolume={getDeckOutputVolume('A')}
           onDurationChange={handleDurationChange}
+          onVolumeChange={(value) => setDeckLevels((current) => ({ ...current, A: value }))}
           onPlayingChange={(isPlaying) => setPlayingDecks((current) => ({ ...current, A: isPlaying }))}
         />
         <Deck
           deckId="B"
           deckColor="var(--deck-b-color)"
           track={deckTracks.B}
+          channelVolume={deckLevels.B}
+          masterVolume={getDeckOutputVolume('B')}
           onDurationChange={handleDurationChange}
+          onVolumeChange={(value) => setDeckLevels((current) => ({ ...current, B: value }))}
           onPlayingChange={(isPlaying) => setPlayingDecks((current) => ({ ...current, B: isPlaying }))}
         />
-        <Mixer />
+        <Mixer
+          deckLevels={deckLevels}
+          crossfader={crossfader}
+          onDeckLevelChange={(deckId, value) => setDeckLevels((current) => ({ ...current, [deckId]: value }))}
+          onCrossfaderChange={setCrossfader}
+        />
       </main>
       <div id="library">
         <Library

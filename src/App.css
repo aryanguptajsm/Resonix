@@ -44,6 +44,49 @@
   cursor: pointer;
 }
 
+.app__checklist {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  padding: 0 var(--space-lg) var(--space-sm);
+}
+
+.app__checklist-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-full);
+  background: rgba(124, 58, 237, 0.08);
+  color: var(--text-secondary);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.app__checklist-item small {
+  color: var(--text-tertiary);
+  font-size: 8px;
+  letter-spacing: 0.08em;
+  text-transform: none;
+}
+
+.app__checklist-item--done {
+  border-color: rgba(34, 197, 94, 0.45);
+  background: rgba(34, 197, 94, 0.08);
+  color: var(--text-primary);
+}
+
+.app__checklist-toggle {
+  display: inline-grid;
+  place-items: center;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.06);
+}
+
 @media (max-width: 900px) {
   .main-area {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);

@@ -105,25 +105,41 @@
    ══════════════════════════════════════════════════════════════ */
 .deck__waveform-container {
   position: relative;
-  height: 80px;
-  background: var(--bg-primary, #0a0a0f);
-  border-radius: var(--radius-sm, 4px);
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 92px;
+  padding: 8px 6px 4px;
+  background: linear-gradient(180deg, rgba(12, 12, 18, 0.95), rgba(7, 7, 10, 0.9));
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: var(--radius-sm);
   overflow: hidden;
-
-  /* Subtle grid pattern */
-  background-image:
-    linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
-  background-size: 20px 20px;
 }
 
-.deck__waveform-note {
-  position: absolute;
-  inset: 0;
-  display: grid;
-  place-items: center;
-  color: var(--text-tertiary);
-  font-size: 11px;
+.deck__wave-bar {
+  flex: 1;
+  min-width: 3px;
+  border-radius: 999px 999px 0 0;
+  background: rgba(255, 255, 255, 0.14);
+  transition: background 0.15s ease, transform 0.15s ease;
+}
+
+.deck__wave-bar--active {
+  background: linear-gradient(180deg, var(--_deck-color), rgba(255, 255, 255, 0.7));
+  box-shadow: 0 0 8px color-mix(in srgb, var(--_deck-color) 55%, transparent);
+}
+
+.deck__pitch-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.deck__pitch-indicator {
+  color: var(--text-secondary);
+  font-size: 10px;
+  font-family: var(--font-mono);
+  letter-spacing: 0.06em;
 }
 
 .deck__seek-label {
@@ -153,6 +169,20 @@
   color: var(--text-tertiary);
   font-size: 9px;
   letter-spacing: 0.06em;
+}
+
+.deck__pitch-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  color: var(--text-tertiary);
+  font-size: 9px;
+  letter-spacing: 0.06em;
+}
+
+.deck__pitch-wrapper input {
+  width: 100%;
+  accent-color: var(--_deck-color);
 }
 
 /* ══════════════════════════════════════════════════════════════

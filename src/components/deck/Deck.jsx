@@ -8,7 +8,7 @@
  *   deckId    — "A" or "B"
  *   deckColor — CSS variable string, e.g. "var(--deck-a-color)"
  */
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import './Deck.css';
 
 function formatTime(seconds) {
@@ -22,20 +22,34 @@ export default function Deck({
   deckId = 'A',
   deckColor = 'var(--deck-a-color)',
   track = null,
+  channelVolume = 0.8,
+  masterVolume = 0.8,
   onDurationChange,
+  onVolumeChange,
   onPlayingChange,
 }) {
   const audioRef = useRef(null);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [volume, setVolume] = useState(0.8);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
+  const [pitch, setPitch] = useState(0);
   const [error, setError] = useState('');
 
   const label = `DECK ${deckId}`;
 
+  const waveformBars = useMemo(() => {
+    const progress = duration ? currentTime / duration : 0;
+    return Array.from({ length: 36 }, (_, index) => {
+      const wave = 16 + Math.abs(Math.sin(index * 0.75)) * 28 + (index % 5) * 4;
+      const active = index / 36 <= progress;
+      return { height: wave, active };
+    });
+  }, [currentTime, duration]);
+
   useEffect(() => {
     const audio = audioRef.current;
+    if (!audio) return;
+
     audio.pause();
     audio.currentTime = 0;
     setCurrentTime(0);
@@ -53,11 +67,19 @@ export default function Deck({
   }, [track]);
 
   useEffect(() => {
-    if (audioRef.current) audioRef.current.volume = volume;
-  }, [volume]);
+    if (audioRef.current) {
+      audioRef.current.volume = Math.min(1, Math.max(0, channelVolume * masterVolume));
+    }
+  }, [channelVolume, masterVolume]);
+
+  useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.playbackRate = 1 + pitch / 100;
+    }
+  }, [pitch]);
 
   const handlePlay = async () => {
-    if (!track) return;
+    if (!track || !audioRef.current) return;
     try {
       await audioRef.current.play();
       setError('');
@@ -67,12 +89,16 @@ export default function Deck({
   };
 
   const handleStop = () => {
+    if (!audioRef.current) return;
     audioRef.current.pause();
     audioRef.current.currentTime = 0;
     setCurrentTime(0);
+    setIsPlaying(false);
+    onPlayingChange?.(false);
   };
 
   const handleMetadata = () => {
+    if (!audioRef.current || !track) return;
     const loadedDuration = audioRef.current.duration;
     if (Number.isFinite(loadedDuration)) {
       setDuration(loadedDuration);
@@ -81,31 +107,27 @@ export default function Deck({
   };
 
   const handleAudioError = () => {
-    const mediaError = audioRef.current.error;
+    const mediaError = audioRef.current?.error;
     const reason = mediaError?.message || 'format supported nahi hai ya file read nahi ho paayi.';
     setError(`Audio load/play nahi hua: ${reason}`);
     setIsPlaying(false);
+    onPlayingChange?.(false);
   };
 
   return (
     <div
       className="deck"
-      /* Expose deckColor so every child can reference it via var(--_deck-color) */
       style={{ '--_deck-color': deckColor }}
     >
-      {/* ───────────────── 1. DECK HEADER ───────────────── */}
       <header className="deck__header">
-        {/* Left: deck label + track info */}
         <div className="deck__header-left">
           <span className="deck__label">{label}</span>
-
           <div className="deck__track-info">
             <span className="deck__track-title">{track?.title || 'No Track Loaded'}</span>
             <span className="deck__track-artist">{track?.artist || 'Library se audio load karein'}</span>
           </div>
         </div>
 
-        {/* Right: BPM + time readouts */}
         <div className="deck__header-right">
           <div className="deck__bpm">
             <span className="deck__bpm-value">{track?.bpm ?? '—'}</span>
@@ -120,11 +142,20 @@ export default function Deck({
         </div>
       </header>
 
-      {/* ───────────────── 2. WAVEFORM AREA ───────────────── */}
-      <div className="deck__waveform-container">
-        <span className="deck__waveform-note">Waveform analysis — Phase 6</span>
+      <div className="deck__waveform-container" aria-label={`Waveform for ${label}`}>
+        {waveformBars.map((bar, index) => (
+          <span
+            key={`${deckId}-${index}`}
+            className={`deck__wave-bar ${bar.active ? 'deck__wave-bar--active' : ''}`}
+            style={{ height: `${bar.height}px` }}
+          />
+        ))}
       </div>
-      <label className="deck__seek-label" htmlFor={`seek-${deckId}`}>SEEK</label>
+
+      <div className="deck__pitch-row">
+        <label className="deck__seek-label" htmlFor={`seek-${deckId}`}>SEEK</label>
+        <div className="deck__pitch-indicator">{pitch > 0 ? `+${pitch}%` : `${pitch}%`}</div>
+      </div>
       <input
         id={`seek-${deckId}`}
         className="deck__seek"
@@ -137,12 +168,13 @@ export default function Deck({
         aria-label={`Seek Deck ${deckId}`}
         onChange={(event) => {
           const time = Number(event.target.value);
-          audioRef.current.currentTime = time;
+          if (audioRef.current) {
+            audioRef.current.currentTime = time;
+          }
           setCurrentTime(time);
         }}
       />
 
-      {/* ───────────────── 3. TRANSPORT CONTROLS ───────────────── */}
       <div className="deck__transport">
         <button
           className="deck__transport-btn deck__transport-btn--cue"
@@ -159,7 +191,7 @@ export default function Deck({
           }`}
           title="Play / Pause"
           disabled={!track}
-          onClick={isPlaying ? () => audioRef.current.pause() : handlePlay}
+          onClick={isPlaying ? () => audioRef.current?.pause() : handlePlay}
         >
           {isPlaying ? '⏸' : '▶'}
         </button>
@@ -176,13 +208,12 @@ export default function Deck({
         <button
           className="deck__transport-btn deck__transport-btn--sync"
           title="Sync"
-          disabled
+          disabled={!track}
         >
           SYNC
         </button>
       </div>
 
-      {/* ─────── 4 & 5. JOG WHEEL + PITCH SLIDER (side by side) ─────── */}
       <div className="deck__jog-pitch-row">
         <div className="deck__jog-wrapper">
           <div className="deck__jog">
@@ -190,25 +221,41 @@ export default function Deck({
               <div className="deck__jog-dot" />
             </div>
           </div>
-          <span className="deck__jog-label">JOG · LATER</span>
+          <span className="deck__jog-label">JOG · READY</span>
         </div>
 
         <div className="deck__volume">
-          <label htmlFor={`volume-${deckId}`}>DECK VOLUME {Math.round(volume * 100)}%</label>
+          <label htmlFor={`volume-${deckId}`}>DECK VOLUME {Math.round(channelVolume * 100)}%</label>
           <input
             id={`volume-${deckId}`}
             type="range"
             min="0"
             max="1"
             step="0.01"
-            value={volume}
-            onChange={(event) => setVolume(Number(event.target.value))}
+            value={channelVolume}
+            onChange={(event) => {
+              const value = Number(event.target.value);
+              onVolumeChange?.(value);
+            }}
             aria-label={`Deck ${deckId} volume`}
           />
         </div>
       </div>
 
-      {/* ───────────────── 6. HOT CUE BUTTONS ───────────────── */}
+      <div className="deck__pitch-wrapper">
+        <label htmlFor={`pitch-${deckId}`}>PITCH {pitch > 0 ? `+${pitch}%` : `${pitch}%`}</label>
+        <input
+          id={`pitch-${deckId}`}
+          type="range"
+          min="-12"
+          max="12"
+          step="1"
+          value={pitch}
+          onChange={(event) => setPitch(Number(event.target.value))}
+          aria-label={`Deck ${deckId} pitch`}
+        />
+      </div>
+
       <div className="deck__hotcues">
         {[1, 2, 3, 4, 5, 6, 7, 8].map((n) => (
           <button key={n} className="deck__hotcue-btn" title={`Hot Cue ${n} — Phase 9`} disabled>
@@ -217,7 +264,6 @@ export default function Deck({
         ))}
       </div>
 
-      {/* ───────────────── 7. LOOP CONTROLS ───────────────── */}
       <div className="deck__loops">
         {['1', '2', '4', '8', '16'].map((beats) => (
           <button key={beats} className="deck__loop-btn" title={`${beats} beat loop — Phase 9`} disabled>
