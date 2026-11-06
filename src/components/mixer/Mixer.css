@@ -7,8 +7,8 @@
 
 /* ---- Main Mixer Container ---- */
 .mixer {
-  width: 220px;
-  min-width: 220px;
+  width: 180px;
+  min-width: 180px;
   background: var(--bg-secondary);
   border-radius: var(--radius-lg);
   padding: var(--space-md);
@@ -16,6 +16,14 @@
   flex-direction: column;
   gap: 0;  /* Sections use divider borders instead of gaps */
   overflow: hidden;
+}
+
+.mixer__phase-note {
+  margin: auto 0;
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+  line-height: 1.6;
+  text-align: center;
 }
 
 /* ============================================

@@ -1,49 +1,26 @@
-import React, { useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import './Library.css';
 
-/* ──────────────────────────────────────────────
-   Library — Bottom panel track browser
-   Phase 1 shell: displays sample tracks, search
-   bar, tabs, and load-to-deck buttons. No real
-   audio loading yet.
-   ────────────────────────────────────────────── */
+function formatDuration(seconds) {
+  if (!Number.isFinite(seconds)) return '—';
+  const minutes = Math.floor(seconds / 60);
+  const remainder = Math.floor(seconds % 60);
+  return `${minutes}:${String(remainder).padStart(2, '0')}`;
+}
 
-/* Tabs available in the library header */
-const TABS = ['ALL TRACKS', 'PLAYLISTS', 'FAVORITES', 'HISTORY'];
-
-/* Placeholder tracks for visual testing — real data comes in Phase 2 */
-const SAMPLE_TRACKS = [
-  { id: 1, title: 'Midnight Groove', artist: 'DJ Shadow', album: 'Endtroducing', bpm: 126, duration: '5:32', key: 'Am' },
-  { id: 2, title: 'Electric Dreams', artist: 'Daft Punk', album: 'Discovery', bpm: 128, duration: '4:15', key: 'Cm' },
-  { id: 3, title: 'Bass Cathedral', artist: 'Noisia', album: 'Split The Atom', bpm: 174, duration: '6:01', key: 'Fm' },
-];
-
-function Library() {
-  /* Currently active tab — only "ALL TRACKS" is functional for now */
+function Library({ tracks, onImport, onLoadToDeck }) {
   const [activeTab, setActiveTab] = useState('ALL TRACKS');
-
-  /* Search query (filtering not wired up yet) */
   const [searchQuery, setSearchQuery] = useState('');
-
-  /* Track being hovered — used to show load-to-deck buttons */
   const [hoveredTrackId, setHoveredTrackId] = useState(null);
-
-  /* Compute total duration from sample tracks for the status bar */
-  const totalDuration = () => {
-    let totalSeconds = 0;
-    SAMPLE_TRACKS.forEach((track) => {
-      const [mins, secs] = track.duration.split(':').map(Number);
-      totalSeconds += mins * 60 + secs;
-    });
-    const m = Math.floor(totalSeconds / 60);
-    const s = totalSeconds % 60;
-    return `${m}:${s.toString().padStart(2, '0')}`;
-  };
-
-  /* Placeholder handler — Phase 2 will load audio into a deck */
-  const handleLoadToDeck = (trackId, deck) => {
-    console.log(`[Library] Load track ${trackId} to Deck ${deck}`);
-  };
+  const fileInputRef = useRef(null);
+  const visibleTracks = useMemo(() => {
+    const query = searchQuery.trim().toLocaleLowerCase();
+    return tracks.filter((track) => (
+      !query
+      || `${track.title} ${track.artist} ${track.album}`.toLocaleLowerCase().includes(query)
+    ));
+  }, [searchQuery, tracks]);
+  const knownDuration = tracks.reduce((total, track) => total + (track.duration || 0), 0);
 
   return (
     <section className="library">
@@ -55,7 +32,9 @@ function Library() {
             <button
               key={tab}
               className={`library__tab ${activeTab === tab ? 'library__tab--active' : ''}`}
+              disabled={tab !== 'ALL TRACKS'}
               onClick={() => setActiveTab(tab)}
+              title={tab === 'ALL TRACKS' ? undefined : 'Available in a later phase'}
             >
               {tab}
             </button>
@@ -74,7 +53,24 @@ function Library() {
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
-          <button className="library__import-btn">📂 Import</button>
+          <input
+            ref={fileInputRef}
+            className="library__import-input"
+            type="file"
+            accept="audio/*,.mp3,.wav,.ogg,.flac,.m4a,.aac,.opus"
+            multiple
+            onChange={(event) => {
+              onImport(Array.from(event.target.files || []));
+              event.target.value = '';
+            }}
+          />
+          <button
+            className="library__import-btn"
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+          >
+            📂 Import audio
+          </button>
         </div>
       </div>
 
@@ -94,7 +90,12 @@ function Library() {
         </div>
 
         {/* Track rows */}
-        {SAMPLE_TRACKS.map((track, index) => (
+        {visibleTracks.length === 0 && (
+          <p className="library__empty">
+            {tracks.length === 0 ? 'Import audio files to start your library.' : 'Search se koi track nahi mila.'}
+          </p>
+        )}
+        {visibleTracks.map((track, index) => (
           <div
             key={track.id}
             className="library__row library__row--track"
@@ -106,7 +107,9 @@ function Library() {
             <span className="library__cell library__cell--artist">{track.artist}</span>
             <span className="library__cell library__cell--album">{track.album}</span>
             <span className="library__cell library__cell--bpm library__cell--mono">{track.bpm}</span>
-            <span className="library__cell library__cell--duration library__cell--mono">{track.duration}</span>
+            <span className="library__cell library__cell--duration library__cell--mono">
+              {formatDuration(track.duration)}
+            </span>
             <span className="library__cell library__cell--key library__cell--mono">{track.key}</span>
 
             {/* Load-to-deck buttons — visible only on hover */}
@@ -115,13 +118,13 @@ function Library() {
                 <div className="library__load-buttons">
                   <button
                     className="library__load-btn library__load-btn--a"
-                    onClick={() => handleLoadToDeck(track.id, 'A')}
+                    onClick={() => onLoadToDeck(track, 'A')}
                   >
                     Load A
                   </button>
                   <button
                     className="library__load-btn library__load-btn--b"
-                    onClick={() => handleLoadToDeck(track.id, 'B')}
+                    onClick={() => onLoadToDeck(track, 'B')}
                   >
                     Load B
                   </button>
@@ -134,9 +137,9 @@ function Library() {
 
       {/* ── 3. Bottom Status Bar ──────────────────── */}
       <div className="library__status">
-        <span className="library__status-count">{SAMPLE_TRACKS.length} tracks</span>
+        <span className="library__status-count">{tracks.length} tracks</span>
         <span className="library__status-sep">|</span>
-        <span className="library__status-duration">{totalDuration()}</span>
+        <span className="library__status-duration">{formatDuration(knownDuration)} analyzed</span>
       </div>
     </section>
   );

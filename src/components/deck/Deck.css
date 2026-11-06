@@ -6,6 +6,7 @@
 
 /* ── Container ─────────────────────────────────────────────── */
 .deck {
+  min-width: 0;
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -116,21 +117,42 @@
   background-size: 20px 20px;
 }
 
-.deck__waveform-canvas {
-  display: block;
-  width: 100%;
-  height: 100%;
+.deck__waveform-note {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: var(--text-tertiary);
+  font-size: 11px;
 }
 
-/* Playback progress indicator — sits at the bottom of the waveform */
-.deck__waveform-progress {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  width: 0%;            /* 0 % until audio is playing */
-  height: 2px;
-  background: var(--_deck-color);
-  transition: width 0.1s linear;
+.deck__seek-label {
+  color: var(--text-tertiary);
+  font-size: 9px;
+  letter-spacing: 0.1em;
+}
+
+.deck__seek,
+.deck__volume input {
+  width: 100%;
+  accent-color: var(--_deck-color);
+  cursor: pointer;
+}
+
+.deck__seek:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.deck__volume {
+  display: flex;
+  min-width: 120px;
+  flex: 1;
+  flex-direction: column;
+  gap: 6px;
+  color: var(--text-tertiary);
+  font-size: 9px;
+  letter-spacing: 0.06em;
 }
 
 /* ══════════════════════════════════════════════════════════════
@@ -163,6 +185,13 @@
 .deck__transport-btn:hover {
   background: var(--bg-surface, #2a2a38);
   color: var(--text-primary, #f0f0f5);
+}
+
+.deck__transport-btn:disabled,
+.deck__hotcue-btn:disabled,
+.deck__loop-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
 }
 
 /* CUE — amber / yellow */
@@ -213,6 +242,11 @@
   align-items: center;
   justify-content: center;
   gap: var(--space-lg, 24px);
+}
+
+.deck__error {
+  color: #fca5a5;
+  font-size: 11px;
 }
 
 /* ── 4. Jog Wheel ── */

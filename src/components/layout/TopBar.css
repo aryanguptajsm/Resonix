@@ -54,6 +54,7 @@
 }
 
 .topbar__nav-link {
+  text-decoration: none;
   background: none;
   border: none;
   color: var(--text-secondary, #a0a0b8);
