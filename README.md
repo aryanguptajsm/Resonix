@@ -23,6 +23,8 @@ npm run preview
 
 The production-ready static site is written to `dist/`. Deploy the contents of that directory to any static web host.
 
+Vercel is configured in `vercel.json` to run a clean `npm ci` install before building, avoiding stale cached executable permissions.
+
 ## Deploy to GitHub Pages
 
 The workflow in `.github/workflows/deploy.yml` builds the site and publishes it whenever changes are pushed to `main`.
