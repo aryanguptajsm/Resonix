@@ -49,6 +49,13 @@ export default function Deck({
   const [waveformPeaks, setWaveformPeaks] = useState([]);
   const [loopBeats, setLoopBeats] = useState(4);
   const [activeLoop, setActiveLoop] = useState(null);
+  const [effects, setEffects] = useState({
+    filter: false,
+    echo: false,
+    reverb: false,
+    flanger: false,
+  });
+  const [filterCutoff, setFilterCutoff] = useState(1800);
   const [jogRotation, setJogRotation] = useState(0);
   const [isJogging, setIsJogging] = useState(false);
   const [waveformStatus, setWaveformStatus] = useState('idle');
@@ -107,6 +114,20 @@ export default function Deck({
   }, [eq.high, eq.low, eq.mid, outputGain]);
 
   useEffect(() => {
+    const graph = audioGraphRef.current;
+    if (!graph) return;
+
+    const { context, fxFilter, delay, echoGain, reverbGain, flangerGain } = graph;
+    const bpm = Number(track?.bpm);
+    const echoDelay = Number.isFinite(bpm) && bpm > 0 ? 60 / bpm : 0.375;
+    updateAudioParam(context, fxFilter.frequency, effects.filter ? filterCutoff : context.sampleRate / 2);
+    updateAudioParam(context, delay.delayTime, echoDelay);
+    updateAudioParam(context, echoGain.gain, effects.echo ? 0.32 : 0);
+    updateAudioParam(context, reverbGain.gain, effects.reverb ? 0.22 : 0);
+    updateAudioParam(context, flangerGain.gain, effects.flanger ? 0.2 : 0);
+  }, [effects, filterCutoff, track?.bpm]);
+
+  useEffect(() => {
     const audio = audioRef.current;
     if (audio) audio.playbackRate = 1 + pitch / 100;
   }, [pitch]);
@@ -132,19 +153,57 @@ export default function Deck({
       const waveformHeight = bounds.height - rulerHeight;
       const center = waveformHeight / 2;
       const visibleDuration = Math.max(0.01, waveformEnd - waveformStart);
-      const visiblePeaks = waveformPeaks.slice(
-        Math.floor(waveformStart * 20),
-        Math.ceil(waveformEnd * 20),
+      const firstPeak = Math.max(0, Math.floor(waveformStart * 20));
+      const lastPeak = Math.min(waveformPeaks.length, Math.ceil(waveformEnd * 20));
+      const playheadX = Math.max(
+        0,
+        Math.min(bounds.width, ((currentTime - waveformStart) / visibleDuration) * bounds.width),
       );
-      const progress = (currentTime - waveformStart) / visibleDuration;
-      const playedWidth = Math.max(0, Math.min(bounds.width, bounds.width * progress));
       const color = getComputedStyle(canvas).getPropertyValue('--_deck-color').trim() || '#8b5cf6';
-      const barSpacing = bounds.width / Math.max(visiblePeaks.length, 1);
+      const barSpacing = bounds.width / (visibleDuration * 20);
       const barWidth = Math.max(1, barSpacing * 0.7);
       const playedGradient = context.createLinearGradient(0, 0, 0, waveformHeight);
       playedGradient.addColorStop(0, color);
-      playedGradient.addColorStop(0.5, 'rgba(255,255,255,0.88)');
+      playedGradient.addColorStop(0.5, 'rgba(255,255,255,0.94)');
       playedGradient.addColorStop(1, color);
+      const bpm = Number(track?.bpm);
+      const beatDuration = Number.isFinite(bpm) && bpm > 0 ? 60 / bpm : 0;
+
+      if (beatDuration) {
+        const firstBeat = Math.ceil(waveformStart / beatDuration);
+        for (let beat = firstBeat; beat * beatDuration <= waveformEnd; beat += 1) {
+          const x = ((beat * beatDuration - waveformStart) / visibleDuration) * bounds.width;
+          context.strokeStyle = beat % 4 === 0
+            ? 'rgba(255,255,255,0.15)'
+            : 'rgba(255,255,255,0.055)';
+          context.lineWidth = 1;
+          context.beginPath();
+          context.moveTo(x + 0.5, 0);
+          context.lineTo(x + 0.5, waveformHeight);
+          context.stroke();
+        }
+      }
+
+      if (activeLoop) {
+        const loopStartX = ((activeLoop.start - waveformStart) / visibleDuration) * bounds.width;
+        const loopEndX = ((activeLoop.end - waveformStart) / visibleDuration) * bounds.width;
+        context.fillStyle = 'rgba(6,182,212,0.12)';
+        context.fillRect(
+          Math.max(0, loopStartX),
+          0,
+          Math.max(0, Math.min(bounds.width, loopEndX) - Math.max(0, loopStartX)),
+          waveformHeight,
+        );
+        context.strokeStyle = 'rgba(6,182,212,0.7)';
+        context.lineWidth = 1;
+        [loopStartX, loopEndX].forEach((x) => {
+          if (x < 0 || x > bounds.width) return;
+          context.beginPath();
+          context.moveTo(x + 0.5, 0);
+          context.lineTo(x + 0.5, waveformHeight);
+          context.stroke();
+        });
+      }
 
       context.strokeStyle = 'rgba(255,255,255,0.12)';
       context.lineWidth = 1;
@@ -167,24 +226,31 @@ export default function Deck({
         context.fillText(formatTime(tick), Math.min(bounds.width - 30, x + 3), bounds.height - 2);
       }
 
-      visiblePeaks.forEach((peak, index) => {
-        const x = index * barSpacing;
+      for (let index = firstPeak; index < lastPeak; index += 1) {
+        const peak = waveformPeaks[index];
+        const x = ((index / 20 - waveformStart) / visibleDuration) * bounds.width;
         const barHeight = Math.max(2, Math.sqrt(peak) * (waveformHeight * 0.86));
-        context.fillStyle = x < playedWidth ? playedGradient : 'rgba(179,190,215,0.42)';
+        context.fillStyle = x < playheadX ? playedGradient : 'rgba(78,157,221,0.58)';
         context.fillRect(x, center - barHeight / 2, barWidth, barHeight);
-      });
+      }
 
       if (waveformPeaks.length > 0 && currentTime >= waveformStart && currentTime <= waveformEnd) {
         context.fillStyle = '#ffffff';
         context.shadowColor = color;
-        context.shadowBlur = 7;
-        context.fillRect(Math.min(playedWidth, bounds.width - 1), 0, 1.5, waveformHeight);
+        context.shadowBlur = 10;
+        context.fillRect(Math.min(playheadX - 1, bounds.width - 1), 0, 2, waveformHeight);
+        context.beginPath();
+        context.moveTo(playheadX - 5, 0);
+        context.lineTo(playheadX + 5, 0);
+        context.lineTo(playheadX, 6);
+        context.closePath();
+        context.fill();
         context.shadowBlur = 0;
       }
     };
 
     drawWaveformRef.current();
-  }, [currentTime, duration, waveformEnd, waveformPeaks, waveformStart, waveformWindowSeconds]);
+  }, [activeLoop, currentTime, duration, track?.bpm, waveformEnd, waveformPeaks, waveformStart, waveformWindowSeconds]);
 
   useEffect(() => {
     const canvas = waveformCanvasRef.current;
@@ -204,6 +270,46 @@ export default function Deck({
     }
   }, [deckId]);
 
+  useEffect(() => {
+    if (!isPlaying || !audioRef.current) return undefined;
+
+    let frameId = 0;
+    let lastPaint = 0;
+    const updatePlayhead = (timestamp) => {
+      const audio = audioRef.current;
+      if (!audio || audio.paused) return;
+
+      let time = audio.currentTime;
+      const loop = loopRef.current;
+      if (loop && time >= loop.end) {
+        const graph = audioGraphRef.current;
+        if (graph) {
+          const now = graph.context.currentTime;
+          graph.loopGain.gain.cancelScheduledValues(now);
+          graph.loopGain.gain.setTargetAtTime(0, now, 0.003);
+          graph.loopGain.gain.setValueAtTime(0, now + 0.006);
+          graph.loopGain.gain.linearRampToValueAtTime(1, now + 0.018);
+        }
+        audio.currentTime = loop.start;
+        time = loop.start;
+        onPositionChange?.(time);
+      }
+
+      if (timestamp - lastPaint >= 33) {
+        setCurrentTime(time);
+        setWaveformStart(Math.max(
+          0,
+          Math.min(duration - visibleWindowSeconds, time - visibleWindowSeconds / 2),
+        ));
+        lastPaint = timestamp;
+      }
+      frameId = window.requestAnimationFrame(updatePlayhead);
+    };
+
+    frameId = window.requestAnimationFrame(updatePlayhead);
+    return () => window.cancelAnimationFrame(frameId);
+  }, [duration, isPlaying, onPositionChange, visibleWindowSeconds]);
+
   const createAudioGraph = () => {
     if (audioGraphRef.current) return audioGraphRef.current;
     if (!window.AudioContext || !audioRef.current) {
@@ -216,6 +322,17 @@ export default function Deck({
     const midFilter = context.createBiquadFilter();
     const highFilter = context.createBiquadFilter();
     const channelGain = context.createGain();
+    const loopGain = context.createGain();
+    const fxFilter = context.createBiquadFilter();
+    const delay = context.createDelay(2);
+    const echoFeedback = context.createGain();
+    const echoGain = context.createGain();
+    const convolver = context.createConvolver();
+    const reverbGain = context.createGain();
+    const flangerDelay = context.createDelay(0.05);
+    const flangerGain = context.createGain();
+    const flangerLfo = context.createOscillator();
+    const flangerDepth = context.createGain();
 
     lowFilter.type = 'lowshelf';
     lowFilter.frequency.value = 250;
@@ -228,12 +345,50 @@ export default function Deck({
     highFilter.frequency.value = 4000;
     highFilter.gain.value = eq.high;
     channelGain.gain.value = outputGain;
+    loopGain.gain.value = 1;
+    fxFilter.type = 'lowpass';
+    fxFilter.frequency.value = context.sampleRate / 2;
+    delay.delayTime.value = 0.375;
+    echoFeedback.gain.value = 0.28;
+    echoGain.gain.value = 0;
+    reverbGain.gain.value = 0;
+    flangerDelay.delayTime.value = 0.004;
+    flangerGain.gain.value = 0;
+    flangerLfo.frequency.value = 0.22;
+    flangerDepth.gain.value = 0.0015;
+
+    const impulseLength = Math.floor(context.sampleRate * 2.2);
+    const impulse = context.createBuffer(2, impulseLength, context.sampleRate);
+    for (let channel = 0; channel < impulse.numberOfChannels; channel += 1) {
+      const samples = impulse.getChannelData(channel);
+      for (let sample = 0; sample < impulseLength; sample += 1) {
+        const fade = (1 - sample / impulseLength) ** 2.5;
+        samples[sample] = (Math.random() * 2 - 1) * fade;
+      }
+    }
+    convolver.buffer = impulse;
 
     source.connect(lowFilter);
     lowFilter.connect(midFilter);
     midFilter.connect(highFilter);
     highFilter.connect(channelGain);
-    channelGain.connect(context.destination);
+    channelGain.connect(loopGain);
+    loopGain.connect(fxFilter);
+    fxFilter.connect(context.destination);
+    fxFilter.connect(delay);
+    delay.connect(echoFeedback);
+    echoFeedback.connect(delay);
+    delay.connect(echoGain);
+    echoGain.connect(context.destination);
+    fxFilter.connect(convolver);
+    convolver.connect(reverbGain);
+    reverbGain.connect(context.destination);
+    fxFilter.connect(flangerDelay);
+    flangerDelay.connect(flangerGain);
+    flangerGain.connect(context.destination);
+    flangerLfo.connect(flangerDepth);
+    flangerDepth.connect(flangerDelay.delayTime);
+    flangerLfo.start();
     audioRef.current.volume = 1;
 
     audioGraphRef.current = {
@@ -242,6 +397,13 @@ export default function Deck({
       midFilter,
       highFilter,
       channelGain,
+      loopGain,
+      fxFilter,
+      delay,
+      echoGain,
+      reverbGain,
+      flangerDelay,
+      flangerGain,
     };
     return audioGraphRef.current;
   };
@@ -252,14 +414,23 @@ export default function Deck({
     audioRef.current.currentTime = nextTime;
     setCurrentTime(nextTime);
     onPositionChange?.(nextTime);
-    if (nextTime < waveformStart || nextTime > waveformEnd) {
-      setWaveformStart(Math.floor(nextTime / waveformWindowSeconds) * waveformWindowSeconds);
-    }
+    setWaveformStart(Math.max(
+      0,
+      Math.min(duration - visibleWindowSeconds, nextTime - visibleWindowSeconds / 2),
+    ));
   };
 
   const handleTimeUpdate = () => {
     const time = audioRef.current?.currentTime || 0;
     if (loopRef.current && time >= loopRef.current.end) {
+      const graph = audioGraphRef.current;
+      if (graph) {
+        const now = graph.context.currentTime;
+        graph.loopGain.gain.cancelScheduledValues(now);
+        graph.loopGain.gain.setTargetAtTime(0, now, 0.003);
+        graph.loopGain.gain.setValueAtTime(0, now + 0.006);
+        graph.loopGain.gain.linearRampToValueAtTime(1, now + 0.018);
+      }
       audioRef.current.currentTime = loopRef.current.start;
       setCurrentTime(loopRef.current.start);
       onPositionChange?.(loopRef.current.start);
@@ -268,9 +439,10 @@ export default function Deck({
 
     setCurrentTime(time);
     onPositionChange?.(time);
-    if (time < waveformStart || time >= waveformStart + waveformWindowSeconds) {
-      setWaveformStart(Math.floor(time / waveformWindowSeconds) * waveformWindowSeconds);
-    }
+    setWaveformStart(Math.max(
+      0,
+      Math.min(duration - visibleWindowSeconds, time - visibleWindowSeconds / 2),
+    ));
   };
 
   const updatePitch = (value) => {
@@ -317,14 +489,16 @@ export default function Deck({
       return;
     }
 
-    const start = audioRef.current?.currentTime ?? currentTime;
-    const end = start + (loopBeats * 60) / bpm;
+    const beatDuration = 60 / bpm;
+    const start = Math.max(0, Math.round((audioRef.current?.currentTime ?? currentTime) / beatDuration) * beatDuration);
+    const end = start + loopBeats * beatDuration;
     if (end > duration) {
       setError('Track ke end se pehle poora loop fit nahi hota. Playhead ko thoda peeche le jaayein.');
       return;
     }
 
     const loop = { start, end };
+    seekTo(start);
     loopRef.current = loop;
     setActiveLoop(loop);
     setError('');
