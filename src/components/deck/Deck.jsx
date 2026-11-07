@@ -39,6 +39,7 @@ export default function Deck({
   const drawWaveformRef = useRef(() => {});
   const waveformRequestRef = useRef(0);
   const loopRef = useRef(null);
+  const jogDragRef = useRef(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -48,6 +49,8 @@ export default function Deck({
   const [waveformPeaks, setWaveformPeaks] = useState([]);
   const [loopBeats, setLoopBeats] = useState(4);
   const [activeLoop, setActiveLoop] = useState(null);
+  const [jogRotation, setJogRotation] = useState(0);
+  const [isJogging, setIsJogging] = useState(false);
   const [waveformStatus, setWaveformStatus] = useState('idle');
   const [waveformError, setWaveformError] = useState('');
   const [error, setError] = useState('');
@@ -327,6 +330,52 @@ export default function Deck({
     setError('');
   };
 
+  const handleJogPointerDown = (event) => {
+    if (!track) return;
+    event.currentTarget.setPointerCapture(event.pointerId);
+    jogDragRef.current = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startTime: audioRef.current?.currentTime ?? currentTime,
+      startRotation: jogRotation,
+    };
+    setIsJogging(true);
+    event.preventDefault();
+  };
+
+  const handleJogPointerMove = (event) => {
+    const drag = jogDragRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    const horizontalMovement = event.clientX - drag.startX;
+    seekTo(drag.startTime + horizontalMovement * 0.04);
+    setJogRotation(drag.startRotation + horizontalMovement * 3);
+  };
+
+  const handleJogPointerEnd = (event) => {
+    if (!jogDragRef.current || jogDragRef.current.pointerId !== event.pointerId) return;
+    jogDragRef.current = null;
+    setIsJogging(false);
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+  };
+
+  const handleJogKeyDown = (event) => {
+    const nudge = event.shiftKey ? 1 : 0.1;
+    if (event.key === 'ArrowLeft' || event.key === 'ArrowDown') {
+      seekTo(currentTime - nudge);
+    } else if (event.key === 'ArrowRight' || event.key === 'ArrowUp') {
+      seekTo(currentTime + nudge);
+    } else if (event.key === 'Home') {
+      seekTo(0);
+    } else if (event.key === 'End') {
+      seekTo(duration);
+    } else {
+      return;
+    }
+    event.preventDefault();
+  };
+
   const handlePlay = async () => {
     if (!track || !audioRef.current) return;
     try {
@@ -562,12 +611,40 @@ export default function Deck({
 
       <div className="deck__jog-pitch-row">
         <div className="deck__jog-wrapper">
-          <div className="deck__jog">
-            <div className="deck__jog-inner">
-              <div className="deck__jog-dot" />
+          <div
+            className={`deck__jog ${isJogging ? 'deck__jog--dragging' : ''}`}
+            role="slider"
+            tabIndex={track ? 0 : -1}
+            aria-label={`Deck ${deckId} jog wheel; drag to scrub audio`}
+            aria-disabled={!track}
+            aria-valuemin={0}
+            aria-valuemax={Math.floor(duration)}
+            aria-valuenow={Math.floor(currentTime)}
+            data-playing={isPlaying}
+            onPointerDown={handleJogPointerDown}
+            onPointerMove={handleJogPointerMove}
+            onPointerUp={handleJogPointerEnd}
+            onPointerCancel={handleJogPointerEnd}
+            onWheel={(event) => {
+              if (!track) return;
+              event.preventDefault();
+              const direction = event.deltaY > 0 ? 1 : -1;
+              seekTo(currentTime + direction * 0.25);
+              setJogRotation((rotation) => rotation + direction * 24);
+            }}
+            onKeyDown={handleJogKeyDown}
+            style={{ '--jog-angle': `${jogRotation}deg` }}
+          >
+            <div className="deck__jog-platter">
+              <span className="deck__jog-groove deck__jog-groove--outer" />
+              <span className="deck__jog-groove deck__jog-groove--inner" />
+              <div className="deck__jog-inner">
+                <span className="deck__jog-label-center">RX</span>
+                <div className="deck__jog-dot" />
+              </div>
             </div>
           </div>
-          <span className="deck__jog-label">JOG · LATER</span>
+          <span className="deck__jog-label">{isJogging ? 'SCRUBBING' : 'JOG · SCRUB'}</span>
         </div>
         <div className="deck__volume">
           <label htmlFor={`volume-${deckId}`}>DECK VOLUME {Math.round(channelVolume * 100)}%</label>

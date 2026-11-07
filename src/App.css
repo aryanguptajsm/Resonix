@@ -1,27 +1,30 @@
 /* ============================================
    RESONIX — App Layout Styles
-   ============================================ */
+   =========================================== */
 
 .app {
   display: flex;
   flex-direction: column;
   height: 100vh;
+  height: 100dvh;
+  min-height: 100vh;
   width: 100vw;
   background: var(--bg-primary);
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
 /* ---- Main Content Area ---- */
 /* Yeh top bar aur library ke beech ka area hai
    jahan decks aur mixer dikhte hain */
 .main-area {
-  flex: 1;
+  flex: 0 0 auto;
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 230px;
   gap: var(--space-sm);
   padding: var(--space-sm);
-  min-height: 0;
-  overflow: auto;
+  min-height: auto;
+  overflow: visible;
 }
 
 .app__notice {
@@ -44,50 +47,113 @@
   cursor: pointer;
 }
 
-.app__checklist {
-  display: flex;
-  flex-wrap: nowrap;
-  gap: var(--space-sm);
-  overflow-x: auto;
-  padding: 0 var(--space-lg) var(--space-xs);
-  scrollbar-width: thin;
+.roadmap-page {
+  width: min(100%, 980px);
+  margin: 0 auto;
+  padding: clamp(24px, 5vw, 56px) clamp(16px, 4vw, 40px);
 }
 
-.app__checklist-item {
-  flex: 0 0 auto;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 10px;
+.roadmap-page__header {
+  position: relative;
+  margin-bottom: 28px;
+  padding: 24px;
   border: 1px solid var(--border-color);
-  border-radius: var(--radius-full);
-  background: rgba(124, 58, 237, 0.08);
+  border-radius: var(--radius-lg);
+  background:
+    radial-gradient(ellipse at 100% 0, rgba(124, 58, 237, 0.16), transparent 55%),
+    var(--bg-secondary);
+}
+
+.roadmap-page__eyebrow {
+  color: var(--text-accent);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+}
+
+.roadmap-page__header h1 {
+  margin-top: 10px;
+  font-size: clamp(24px, 4vw, 34px);
+}
+
+.roadmap-page__header p {
+  max-width: 560px;
+  margin-top: 8px;
   color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+  line-height: 1.6;
+}
+
+.roadmap-page__progress {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-top: 20px;
+  color: var(--text-tertiary);
+  font-size: var(--font-size-sm);
+}
+
+.roadmap-page__progress strong {
+  color: var(--color-playing);
+  font-family: var(--font-mono);
+  font-size: 20px;
+}
+
+.roadmap-page__list {
+  display: grid;
+  gap: 8px;
+  list-style: none;
+}
+
+.roadmap-page__item {
+  display: grid;
+  grid-template-columns: 28px minmax(72px, 110px) minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  min-height: 54px;
+  padding: 10px 16px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  background: var(--bg-secondary);
+}
+
+.roadmap-page__check {
+  display: grid;
+  width: 24px;
+  height: 24px;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--bg-elevated);
+  color: var(--text-tertiary);
+}
+
+.roadmap-page__item--done {
+  border-color: rgba(34, 197, 94, 0.24);
+}
+
+.roadmap-page__item--done .roadmap-page__check {
+  background: rgba(34, 197, 94, 0.12);
+  color: var(--color-playing);
+}
+
+.roadmap-page__phase,
+.roadmap-page__status {
+  color: var(--text-tertiary);
   font-size: 10px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 
-.app__checklist-item small {
-  color: var(--text-tertiary);
-  font-size: 8px;
-  letter-spacing: 0.08em;
-  text-transform: none;
-}
-
-.app__checklist-item--done {
-  border-color: rgba(34, 197, 94, 0.45);
-  background: rgba(34, 197, 94, 0.08);
+.roadmap-page__name {
   color: var(--text-primary);
+  font-size: var(--font-size-sm);
 }
 
-.app__checklist-toggle {
-  display: inline-grid;
-  place-items: center;
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.06);
+.roadmap-page__status {
+  text-align: right;
+}
+
+.roadmap-page__item--done .roadmap-page__status {
+  color: var(--color-playing);
 }
 
 @media (max-width: 900px) {
@@ -109,5 +175,16 @@
 
   .mixer {
     grid-column: auto;
+  }
+
+  .roadmap-page__item {
+    grid-template-columns: 26px 72px minmax(0, 1fr);
+    gap: 8px;
+    padding: 10px;
+  }
+
+  .roadmap-page__status {
+    grid-column: 3;
+    text-align: left;
   }
 }

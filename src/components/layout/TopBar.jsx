@@ -1,6 +1,6 @@
 import './TopBar.css';
 
-function TopBar({ status }) {
+function TopBar({ status, activePage, onNavigate }) {
   return (
     <header className="topbar">
       <div className="topbar__left">
@@ -23,8 +23,29 @@ function TopBar({ status }) {
           <span className="topbar__logo-text">RESONIX</span>
         </div>
         <nav className="topbar__nav" aria-label="Main navigation">
-          <a className="topbar__nav-link" href="#decks">Decks</a>
-          <a className="topbar__nav-link" href="#library">Library</a>
+          <button
+            className={`topbar__nav-link ${activePage === 'studio' ? 'topbar__nav-link--active' : ''}`}
+            type="button"
+            aria-current={activePage === 'studio' ? 'page' : undefined}
+            onClick={() => onNavigate?.('studio')}
+          >
+            Studio
+          </button>
+          <button
+            className="topbar__nav-link"
+            type="button"
+            onClick={() => onNavigate?.('studio', 'library')}
+          >
+            Library
+          </button>
+          <button
+            className={`topbar__nav-link ${activePage === 'roadmap' ? 'topbar__nav-link--active' : ''}`}
+            type="button"
+            aria-current={activePage === 'roadmap' ? 'page' : undefined}
+            onClick={() => onNavigate?.('roadmap')}
+          >
+            Roadmap
+          </button>
         </nav>
       </div>
 

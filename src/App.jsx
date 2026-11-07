@@ -36,8 +36,10 @@ function App() {
   const [deckPitch, setDeckPitch] = useState({ A: 0, B: 0 });
   const [deckTimes, setDeckTimes] = useState({ A: 0, B: 0 });
   const [crossfader, setCrossfader] = useState(0);
+  const [activePage, setActivePage] = useState('studio');
   const [notice, setNotice] = useState('');
   const objectUrls = useRef(new Set());
+  const appRef = useRef(null);
 
   useEffect(() => () => {
     objectUrls.current.forEach((url) => URL.revokeObjectURL(url));
@@ -114,6 +116,17 @@ function App() {
 
   const handleSyncFeedback = (message) => setNotice(message);
 
+  const handleNavigate = (page, section) => {
+    setActivePage(page);
+    if (page === 'studio' && section) {
+      window.setTimeout(() => {
+        document.getElementById(section)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 0);
+      return;
+    }
+    appRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   const status = Object.values(playingDecks).some(Boolean)
     ? 'Playing'
     : tracks.length > 0
@@ -121,8 +134,8 @@ function App() {
       : 'Import audio to begin';
 
   return (
-    <div className="app">
-      <TopBar status={status} />
+    <div className="app" ref={appRef}>
+      <TopBar status={status} activePage={activePage} onNavigate={handleNavigate} />
       {notice && (
         <div className="app__notice" role="status">
           <span>{notice}</span>
@@ -131,86 +144,105 @@ function App() {
           </button>
         </div>
       )}
-      <div className="app__checklist" aria-label="Development phases checklist; scroll horizontally to see all phases">
-        {DEVELOPMENT_STAGES.map((phase) => (
-          <div
-            key={phase.id}
-            className={`app__checklist-item ${phase.done ? 'app__checklist-item--done' : ''}`}
-          >
-            <span className="app__checklist-toggle">{phase.done ? '✓' : '•'}</span>
-            <span>{phase.label}</span>
-            <small>{phase.name}</small>
+      {activePage === 'studio' ? (
+        <>
+          <main className="main-area" id="decks">
+            <Deck
+              deckId="A"
+              deckColor="var(--deck-a-color)"
+              track={deckTracks.A}
+              channelVolume={deckLevels.A}
+              outputMix={getDeckOutputVolume('A')}
+              eq={deckEq.A}
+              syncBpm={deckTracks.B?.bpm}
+              syncTime={deckTimes.B}
+              syncPitch={deckPitch.B}
+              onDurationChange={handleDurationChange}
+              onBpmChange={handleBpmChange}
+              onPositionChange={(time) => setDeckTimes((current) => ({ ...current, A: time }))}
+              onPitchChange={(value) => setDeckPitch((current) => ({ ...current, A: value }))}
+              onSyncFeedback={handleSyncFeedback}
+              onEqChange={(band, value) => setDeckEq((current) => ({
+                ...current,
+                A: { ...current.A, [band]: value },
+              }))}
+              onVolumeChange={(value) => setDeckLevels((current) => ({ ...current, A: value }))}
+              onPlayingChange={(isPlaying) => setPlayingDecks((current) => ({ ...current, A: isPlaying }))}
+            />
+            <Deck
+              deckId="B"
+              deckColor="var(--deck-b-color)"
+              track={deckTracks.B}
+              channelVolume={deckLevels.B}
+              outputMix={getDeckOutputVolume('B')}
+              eq={deckEq.B}
+              syncBpm={deckTracks.A?.bpm}
+              syncTime={deckTimes.A}
+              syncPitch={deckPitch.A}
+              onDurationChange={handleDurationChange}
+              onBpmChange={handleBpmChange}
+              onPositionChange={(time) => setDeckTimes((current) => ({ ...current, B: time }))}
+              onPitchChange={(value) => setDeckPitch((current) => ({ ...current, B: value }))}
+              onSyncFeedback={handleSyncFeedback}
+              onEqChange={(band, value) => setDeckEq((current) => ({
+                ...current,
+                B: { ...current.B, [band]: value },
+              }))}
+              onVolumeChange={(value) => setDeckLevels((current) => ({ ...current, B: value }))}
+              onPlayingChange={(isPlaying) => setPlayingDecks((current) => ({ ...current, B: isPlaying }))}
+            />
+            <Mixer
+              deckLevels={deckLevels}
+              deckEq={deckEq}
+              crossfader={crossfader}
+              onDeckLevelChange={(deckId, value) => setDeckLevels((current) => ({ ...current, [deckId]: value }))}
+              onEqChange={(deckId, band, value) => setDeckEq((current) => ({
+                ...current,
+                [deckId]: { ...current[deckId], [band]: value },
+              }))}
+              onEqReset={(deckId) => setDeckEq((current) => ({
+                ...current,
+                [deckId]: { low: 0, mid: 0, high: 0 },
+              }))}
+              onCrossfaderChange={setCrossfader}
+            />
+          </main>
+          <div id="library">
+            <Library
+              tracks={tracks}
+              onImport={handleImport}
+              onLoadToDeck={handleLoadToDeck}
+            />
           </div>
-        ))}
-      </div>
-      <main className="main-area" id="decks">
-        <Deck
-          deckId="A"
-          deckColor="var(--deck-a-color)"
-          track={deckTracks.A}
-          channelVolume={deckLevels.A}
-          outputMix={getDeckOutputVolume('A')}
-          eq={deckEq.A}
-          syncBpm={deckTracks.B?.bpm}
-          syncTime={deckTimes.B}
-          syncPitch={deckPitch.B}
-          onDurationChange={handleDurationChange}
-          onBpmChange={handleBpmChange}
-          onPositionChange={(time) => setDeckTimes((current) => ({ ...current, A: time }))}
-          onPitchChange={(value) => setDeckPitch((current) => ({ ...current, A: value }))}
-          onSyncFeedback={handleSyncFeedback}
-          onEqChange={(band, value) => setDeckEq((current) => ({
-            ...current,
-            A: { ...current.A, [band]: value },
-          }))}
-          onVolumeChange={(value) => setDeckLevels((current) => ({ ...current, A: value }))}
-          onPlayingChange={(isPlaying) => setPlayingDecks((current) => ({ ...current, A: isPlaying }))}
-        />
-        <Deck
-          deckId="B"
-          deckColor="var(--deck-b-color)"
-          track={deckTracks.B}
-          channelVolume={deckLevels.B}
-          outputMix={getDeckOutputVolume('B')}
-          eq={deckEq.B}
-          syncBpm={deckTracks.A?.bpm}
-          syncTime={deckTimes.A}
-          syncPitch={deckPitch.A}
-          onDurationChange={handleDurationChange}
-          onBpmChange={handleBpmChange}
-          onPositionChange={(time) => setDeckTimes((current) => ({ ...current, B: time }))}
-          onPitchChange={(value) => setDeckPitch((current) => ({ ...current, B: value }))}
-          onSyncFeedback={handleSyncFeedback}
-          onEqChange={(band, value) => setDeckEq((current) => ({
-            ...current,
-            B: { ...current.B, [band]: value },
-          }))}
-          onVolumeChange={(value) => setDeckLevels((current) => ({ ...current, B: value }))}
-          onPlayingChange={(isPlaying) => setPlayingDecks((current) => ({ ...current, B: isPlaying }))}
-        />
-        <Mixer
-          deckLevels={deckLevels}
-          deckEq={deckEq}
-          crossfader={crossfader}
-          onDeckLevelChange={(deckId, value) => setDeckLevels((current) => ({ ...current, [deckId]: value }))}
-          onEqChange={(deckId, band, value) => setDeckEq((current) => ({
-            ...current,
-            [deckId]: { ...current[deckId], [band]: value },
-          }))}
-          onEqReset={(deckId) => setDeckEq((current) => ({
-            ...current,
-            [deckId]: { low: 0, mid: 0, high: 0 },
-          }))}
-          onCrossfaderChange={setCrossfader}
-        />
-      </main>
-      <div id="library">
-        <Library
-          tracks={tracks}
-          onImport={handleImport}
-          onLoadToDeck={handleLoadToDeck}
-        />
-      </div>
+        </>
+      ) : (
+        <main className="roadmap-page" id="roadmap">
+          <div className="roadmap-page__header">
+            <span className="roadmap-page__eyebrow">RESONIX DEVELOPMENT</span>
+            <h1>Project roadmap</h1>
+            <p>
+              Completed work and the remaining milestones. Approximate analysis features are labeled honestly.
+            </p>
+            <div className="roadmap-page__progress" role="status">
+              <strong>{DEVELOPMENT_STAGES.filter((phase) => phase.done).length} / {DEVELOPMENT_STAGES.length}</strong>
+              <span>phases complete</span>
+            </div>
+          </div>
+          <ol className="roadmap-page__list" aria-label="Development phases checklist">
+            {DEVELOPMENT_STAGES.map((phase) => (
+              <li
+                key={phase.id}
+                className={`roadmap-page__item ${phase.done ? 'roadmap-page__item--done' : ''}`}
+              >
+                <span className="roadmap-page__check" aria-hidden="true">{phase.done ? '✓' : '·'}</span>
+                <span className="roadmap-page__phase">{phase.label}</span>
+                <span className="roadmap-page__name">{phase.name}</span>
+                <span className="roadmap-page__status">{phase.done ? 'Complete' : 'Upcoming'}</span>
+              </li>
+            ))}
+          </ol>
+        </main>
+      )}
     </div>
   );
 }

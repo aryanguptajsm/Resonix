@@ -71,6 +71,11 @@
   background: var(--bg-tertiary, #1a1a24);
 }
 
+.topbar__nav-link--active {
+  color: var(--text-primary, #f0f0f5);
+  background: var(--bg-tertiary, #1a1a24);
+}
+
 /* ---- Center spacer ---- */
 
 .topbar__spacer {

@@ -7,6 +7,7 @@
 /* ── Container ─────────────────────────────────────────────── */
 .deck {
   min-width: 0;
+  min-height: 650px;
   min-height: 520px;
   flex: 1;
   display: flex;
@@ -370,15 +371,18 @@
 }
 
 .deck__jog {
-  width: 140px;
-  height: 140px;
+  width: 112px;
+  height: 112px;
   border-radius: var(--radius-full, 9999px);
-  border: 2px solid var(--bg-surface, #2a2a38);
-  background: var(--bg-primary, #0a0a0f);
+  border: 2px solid color-mix(in srgb, var(--_deck-color) 45%, var(--bg-surface));
+  background:
+    radial-gradient(circle, transparent 56%, rgba(255, 255, 255, 0.035) 57%, transparent 58%),
+    var(--bg-primary, #0a0a0f);
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: grab;
+  touch-action: none;
   transition: box-shadow 0.25s;
 }
 
@@ -386,24 +390,89 @@
   box-shadow: 0 0 14px color-mix(in srgb, var(--_deck-color) 40%, transparent);
 }
 
+.deck__jog:focus-visible {
+  outline: 2px solid var(--_deck-color);
+  outline-offset: 3px;
+}
+
+.deck__jog[aria-disabled='true'] {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.deck__jog--dragging {
+  cursor: grabbing;
+  box-shadow: 0 0 18px color-mix(in srgb, var(--_deck-color) 48%, transparent);
+}
+
+.deck__jog-platter {
+  position: relative;
+  display: grid;
+  width: 86px;
+  height: 86px;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 50%;
+  background:
+    repeating-radial-gradient(circle, transparent 0 5px, rgba(255, 255, 255, 0.055) 6px, transparent 7px),
+    radial-gradient(circle at 35% 30%, #272a36, #0b0c12 68%);
+  transform: rotate(var(--jog-angle, 0deg));
+}
+
+.deck__jog[data-playing='true'] .deck__jog-platter {
+  animation: deck-jog-spin 3s linear infinite;
+}
+
+@keyframes deck-jog-spin {
+  to {
+    transform: rotate(calc(var(--jog-angle, 0deg) + 360deg));
+  }
+}
+
+.deck__jog-groove {
+  position: absolute;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.deck__jog-groove--outer {
+  inset: 9px;
+}
+
+.deck__jog-groove--inner {
+  inset: 17px;
+}
+
 /* Inner concentric circle */
 .deck__jog-inner {
-  width: 80px;
-  height: 80px;
-  border-radius: var(--radius-full, 9999px);
-  border: 1px solid var(--bg-surface, #2a2a38);
+  position: relative;
   display: flex;
+  width: 32px;
+  height: 32px;
   align-items: center;
   justify-content: center;
+  border-radius: var(--radius-full, 9999px);
+  border: 1px solid color-mix(in srgb, var(--_deck-color) 60%, white);
+  background: radial-gradient(circle at 35% 30%, #343746, #11121a 72%);
+}
+
+.deck__jog-label-center {
+  position: absolute;
+  color: rgba(255, 255, 255, 0.58);
+  font-size: 7px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
 }
 
 /* Center dot */
 .deck__jog-dot {
-  width: 10px;
-  height: 10px;
+  z-index: 1;
+  width: 5px;
+  height: 5px;
   border-radius: var(--radius-full, 9999px);
   background: var(--_deck-color);
-  opacity: 0.7;
+  box-shadow: 0 0 7px var(--_deck-color);
 }
 
 .deck__jog-label {
