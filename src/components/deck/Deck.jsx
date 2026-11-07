@@ -40,6 +40,8 @@ export default function Deck({
   const waveformRequestRef = useRef(0);
   const loopRef = useRef(null);
   const jogDragRef = useRef(null);
+  const jogRef = useRef(null);
+  const jogWheelHandlerRef = useRef(() => {});
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -261,6 +263,15 @@ export default function Deck({
     return () => observer.disconnect();
   }, []);
 
+  useEffect(() => {
+    const jog = jogRef.current;
+    if (!jog) return undefined;
+
+    const handleWheel = (event) => jogWheelHandlerRef.current(event);
+    jog.addEventListener('wheel', handleWheel, { passive: false });
+    return () => jog.removeEventListener('wheel', handleWheel);
+  }, []);
+
   useEffect(() => () => {
     const context = audioGraphRef.current?.context;
     if (context && context.state !== 'closed') {
@@ -419,6 +430,14 @@ export default function Deck({
       0,
       Math.min(duration - visibleWindowSeconds, nextTime - visibleWindowSeconds / 2),
     ));
+  };
+
+  jogWheelHandlerRef.current = (event) => {
+    if (!track) return;
+    event.preventDefault();
+    const direction = event.deltaY > 0 ? 1 : -1;
+    seekTo((audioRef.current?.currentTime ?? currentTime) + direction * 0.25);
+    setJogRotation((rotation) => rotation + direction * 24);
   };
 
   const handleTimeUpdate = () => {
@@ -787,6 +806,7 @@ export default function Deck({
       <div className="deck__jog-pitch-row">
         <div className="deck__jog-wrapper">
           <div
+            ref={jogRef}
             className={`deck__jog ${isJogging ? 'deck__jog--dragging' : ''}`}
             role="slider"
             tabIndex={track ? 0 : -1}
@@ -800,13 +820,6 @@ export default function Deck({
             onPointerMove={handleJogPointerMove}
             onPointerUp={handleJogPointerEnd}
             onPointerCancel={handleJogPointerEnd}
-            onWheel={(event) => {
-              if (!track) return;
-              event.preventDefault();
-              const direction = event.deltaY > 0 ? 1 : -1;
-              seekTo(currentTime + direction * 0.25);
-              setJogRotation((rotation) => rotation + direction * 24);
-            }}
             onKeyDown={handleJogKeyDown}
             style={{ '--jog-angle': `${jogRotation}deg` }}
           >
