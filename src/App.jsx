@@ -15,7 +15,7 @@ const DEVELOPMENT_STAGES = [
   { id: 'phase-7', label: 'Phase 7', name: 'Approx. BPM detection', done: true },
   { id: 'phase-8', label: 'Phase 8', name: 'Approx. sync & pitch', done: true },
   { id: 'phase-9', label: 'Phase 9', name: 'Approx. beat loops', done: true },
-  { id: 'phase-10', label: 'Phase 10', name: 'Audio effects', done: false },
+  { id: 'phase-10', label: 'Phase 10', name: 'Audio effects', done: true },
   { id: 'phase-11', label: 'Phase 11', name: 'Library & playlists', done: false },
   { id: 'phase-12', label: 'Phase 12', name: 'Mix recording', done: false },
   { id: 'phase-13', label: 'Phase 13', name: 'Spotify metadata', done: false },

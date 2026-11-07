@@ -347,13 +347,14 @@ export default function Deck({
     channelGain.gain.value = outputGain;
     loopGain.gain.value = 1;
     fxFilter.type = 'lowpass';
-    fxFilter.frequency.value = context.sampleRate / 2;
-    delay.delayTime.value = 0.375;
+    fxFilter.frequency.value = effects.filter ? filterCutoff : context.sampleRate / 2;
+    const bpm = Number(track?.bpm);
+    delay.delayTime.value = Number.isFinite(bpm) && bpm > 0 ? 60 / bpm : 0.375;
     echoFeedback.gain.value = 0.28;
-    echoGain.gain.value = 0;
-    reverbGain.gain.value = 0;
+    echoGain.gain.value = effects.echo ? 0.32 : 0;
+    reverbGain.gain.value = effects.reverb ? 0.22 : 0;
     flangerDelay.delayTime.value = 0.004;
-    flangerGain.gain.value = 0;
+    flangerGain.gain.value = effects.flanger ? 0.2 : 0;
     flangerLfo.frequency.value = 0.22;
     flangerDepth.gain.value = 0.0015;
 
@@ -880,6 +881,50 @@ export default function Deck({
           {activeLoop ? 'ON' : 'LOOP'}
         </button>
       </div>
+
+      <section className="deck__effects" aria-label={`Deck ${deckId} audio effects`}>
+        <div className="deck__effects-heading">
+          <span>FX</span>
+          <button
+            type="button"
+            onClick={() => setEffects({ filter: false, echo: false, reverb: false, flanger: false })}
+          >
+            RESET
+          </button>
+        </div>
+        <div className="deck__effects-buttons">
+          {[
+            ['filter', 'FILTER'],
+            ['echo', 'ECHO'],
+            ['reverb', 'REVERB'],
+            ['flanger', 'FLANGER'],
+          ].map(([effect, label]) => (
+            <button
+              key={effect}
+              type="button"
+              className={`deck__effect-btn ${effects[effect] ? 'deck__effect-btn--active' : ''}`}
+              aria-pressed={effects[effect]}
+              onClick={() => setEffects((current) => ({ ...current, [effect]: !current[effect] }))}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        <label className="deck__effect-cutoff" htmlFor={`filter-${deckId}`}>
+          <span>FILTER CUTOFF</span>
+          <strong>{filterCutoff >= 1000 ? `${(filterCutoff / 1000).toFixed(1)} kHz` : `${filterCutoff} Hz`}</strong>
+          <input
+            id={`filter-${deckId}`}
+            type="range"
+            min="200"
+            max="12000"
+            step="100"
+            value={filterCutoff}
+            onChange={(event) => setFilterCutoff(Number(event.target.value))}
+            aria-label={`Deck ${deckId} filter cutoff`}
+          />
+        </label>
+      </section>
 
       {error && <p className="deck__error" role="alert">{error}</p>}
       <audio
