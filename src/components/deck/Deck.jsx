@@ -60,9 +60,9 @@ export default function Deck({
   const [error, setError] = useState('');
 
   const label = `DECK ${deckId}`;
-  const waveformStart = 0;
-  const visibleWindowSeconds = duration || 30;
-  const waveformEnd = duration;
+  const visibleWindowSeconds = 30;
+  const waveformStart = currentTime - visibleWindowSeconds / 2;
+  const waveformEnd = waveformStart + visibleWindowSeconds;
   const headroom = 10 ** (-Math.max(0, eq.low, eq.mid, eq.high) / 20);
   const outputGain = Math.min(1, Math.max(0, channelVolume * outputMix * headroom));
 
@@ -139,8 +139,12 @@ export default function Deck({
       if (!bounds.width || !bounds.height) return;
 
       const pixelRatio = Math.min(window.devicePixelRatio || 1, 2);
-      canvas.width = Math.round(bounds.width * pixelRatio);
-      canvas.height = Math.round(bounds.height * pixelRatio);
+      const canvasWidth = Math.round(bounds.width * pixelRatio);
+      const canvasHeight = Math.round(bounds.height * pixelRatio);
+      if (canvas.width !== canvasWidth || canvas.height !== canvasHeight) {
+        canvas.width = canvasWidth;
+        canvas.height = canvasHeight;
+      }
 
       const context = canvas.getContext('2d');
       if (!context) return;
@@ -162,16 +166,16 @@ export default function Deck({
       const peakStride = Math.max(1, Math.ceil((lastPeak - firstPeak) / bounds.width));
       const barWidth = Math.max(1, barSpacing * peakStride * 0.72);
       const playedGradient = context.createLinearGradient(0, 0, 0, waveformHeight);
-      playedGradient.addColorStop(0, '#f4f8ff');
-      playedGradient.addColorStop(0.38, color);
-      playedGradient.addColorStop(0.62, '#f4f8ff');
+      playedGradient.addColorStop(0, color);
+      playedGradient.addColorStop(0.45, '#ecf7ff');
+      playedGradient.addColorStop(0.56, '#ecf7ff');
       playedGradient.addColorStop(1, color);
       const bpm = Number(track?.bpm);
       const beatDuration = Number.isFinite(bpm) && bpm > 0 ? 60 / bpm : 0;
 
       if (beatDuration && (bounds.width / visibleDuration) * beatDuration >= 8) {
-        const firstBeat = Math.ceil(waveformStart / beatDuration);
-        for (let beat = firstBeat; beat * beatDuration <= waveformEnd; beat += 1) {
+        const firstBeat = Math.max(0, Math.ceil(waveformStart / beatDuration));
+        for (let beat = firstBeat; beat * beatDuration <= Math.min(duration, waveformEnd); beat += 1) {
           const x = ((beat * beatDuration - waveformStart) / visibleDuration) * bounds.width;
           context.strokeStyle = beat % 4 === 0
             ? 'rgba(255,255,255,0.15)'
@@ -194,7 +198,11 @@ export default function Deck({
       const tickSeconds = visibleDuration > 600 ? 60 : visibleDuration > 120 ? 30 : visibleDuration > 30 ? 10 : 5;
       context.font = '9px ui-monospace, monospace';
       context.textBaseline = 'bottom';
-      for (let tick = Math.ceil(waveformStart / tickSeconds) * tickSeconds; tick <= waveformEnd; tick += tickSeconds) {
+      for (
+        let tick = Math.max(0, Math.ceil(waveformStart / tickSeconds) * tickSeconds);
+        tick <= Math.min(duration, waveformEnd);
+        tick += tickSeconds
+      ) {
         const x = ((tick - waveformStart) / visibleDuration) * bounds.width;
         context.strokeStyle = 'rgba(255,255,255,0.08)';
         context.beginPath();
@@ -221,7 +229,7 @@ export default function Deck({
       if (waveformPeaks.length > 0 && currentTime >= waveformStart && currentTime <= waveformEnd) {
         context.fillStyle = '#ffffff';
         context.shadowColor = color;
-        context.shadowBlur = 10;
+        context.shadowBlur = 16;
         context.fillRect(Math.min(playheadX - 1, bounds.width - 1), 0, 2, waveformHeight);
         context.beginPath();
         context.moveTo(playheadX - 5, 0);
@@ -588,7 +596,7 @@ export default function Deck({
         <div className="deck__waveform-meta">
           <span className="deck__waveform-title">TRACK WAVEFORM</span>
           <span className="deck__waveform-time-range">
-            {formatTime(waveformStart)} – {formatTime(waveformEnd)} / {formatTime(duration)}
+            {formatTime(Math.max(0, waveformStart))} – {formatTime(Math.min(duration, waveformEnd))} / {formatTime(duration)}
           </span>
         </div>
       </div>
@@ -599,9 +607,9 @@ export default function Deck({
           role="slider"
           tabIndex={waveformPeaks.length ? 0 : -1}
           aria-label={`Seek using Deck ${deckId} waveform`}
-          aria-valuemin={Math.floor(waveformStart)}
-          aria-valuemax={Math.floor(waveformEnd)}
-          aria-valuenow={Math.floor(Math.min(waveformEnd, Math.max(waveformStart, currentTime)))}
+          aria-valuemin={Math.floor(Math.max(0, waveformStart))}
+          aria-valuemax={Math.floor(Math.min(duration, waveformEnd))}
+          aria-valuenow={Math.floor(Math.min(duration, Math.max(0, currentTime)))}
           onPointerDown={(event) => {
             if (!waveformPeaks.length) return;
             const bounds = event.currentTarget.getBoundingClientRect();

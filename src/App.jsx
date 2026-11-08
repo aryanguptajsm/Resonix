@@ -75,7 +75,15 @@ function App() {
       }
 
       setTracks(restoredTracks);
-      const savedDeckIds = JSON.parse(localStorage.getItem('resonix-decks') || '{}');
+      let savedDeckIds = {};
+      try {
+        const savedAssignments = JSON.parse(localStorage.getItem('resonix-decks') || '{}');
+        if (savedAssignments && typeof savedAssignments === 'object') {
+          savedDeckIds = savedAssignments;
+        }
+      } catch (error) {
+        setNotice(`Could not restore your deck assignments: ${error.message}`);
+      }
       setDeckTracks({
         A: restoredTracks.find((track) => track.id === savedDeckIds.A) || null,
         B: restoredTracks.find((track) => track.id === savedDeckIds.B) || null,
