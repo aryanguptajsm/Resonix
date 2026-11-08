@@ -2,6 +2,12 @@
 
 RESONIX is a browser-based DJ studio. Audio files are processed locally in your browser and are not uploaded to a server.
 
+## Local music library
+
+In browsers that support the File System Access API, importing tracks saves browser-managed file access handles in IndexedDB and remembers the tracks assigned to each deck. After restarting, the browser may ask you to grant access again. Your music stays on your device; the app does not save or expose raw filesystem paths.
+
+Browsers without persistent file access can still import and play tracks, but those tracks must be imported again after restarting the app.
+
 ## Requirements
 
 - Node.js 22.12 or newer

@@ -88,9 +88,6 @@ function Mixer({
         />
       </div>
 
-      <p className="mixer__phase-note">
-        EQ signal chain is live. Boosted bands automatically reduce output headroom to help prevent clipping.
-      </p>
     </aside>
   );
 }

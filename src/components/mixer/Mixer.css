@@ -1,24 +1,29 @@
 .mixer {
-  width: 230px;
-  min-width: 230px;
-  padding: var(--space-md);
   display: flex;
+  min-width: 0;
   flex-direction: column;
-  gap: var(--space-md);
-  background: var(--bg-secondary);
+  gap: 18px;
+  padding: 18px 16px;
+  border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
+  background:
+    radial-gradient(ellipse at 50% 0, rgba(102, 75, 171, 0.1), transparent 46%),
+    linear-gradient(160deg, #121923, #0d121a);
+  box-shadow: var(--shadow-md);
 }
 
 .mixer__header {
-  padding-bottom: var(--space-sm);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 13px;
   border-bottom: 1px solid var(--divider);
-  text-align: center;
 }
 
 .mixer__title {
-  color: var(--text-tertiary);
-  font-size: var(--font-size-xs);
-  font-weight: 600;
+  color: var(--text-primary);
+  font-size: 11px;
+  font-weight: 750;
   letter-spacing: 0.15em;
 }
 
@@ -26,14 +31,14 @@
 .mixer__crossfader-block {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 9px;
 }
 
 .mixer__channel {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  padding-bottom: var(--space-md);
+  gap: 13px;
+  padding-bottom: 18px;
   border-bottom: 1px solid var(--divider);
 }
 
@@ -44,21 +49,26 @@
 }
 
 .mixer__channel-heading h2 {
-  color: var(--text-primary);
+  margin: 0;
+  color: var(--text-secondary);
   font-size: 10px;
   letter-spacing: 0.1em;
 }
 
 .mixer__channel-heading button {
+  padding: 4px 6px;
   border: 0;
+  border-radius: 4px;
   background: transparent;
   color: var(--text-tertiary);
   font-size: 8px;
-  letter-spacing: 0.08em;
+  font-weight: 700;
+  letter-spacing: 0.07em;
   cursor: pointer;
 }
 
 .mixer__channel-heading button:hover {
+  background: var(--bg-elevated);
   color: var(--text-primary);
 }
 
@@ -66,10 +76,17 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  color: var(--text-secondary);
-  font-size: 10px;
+  color: var(--text-tertiary);
+  font-size: 9px;
+  font-weight: 650;
   letter-spacing: 0.08em;
   text-transform: uppercase;
+}
+
+.mixer__label-row > span,
+.mixer__label-row > strong {
+  font-family: var(--font-mono);
+  font-size: 9px;
 }
 
 .mixer__label-row--crossfader {
@@ -79,23 +96,26 @@
 .mixer__channel-control input,
 .mixer__crossfader {
   width: 100%;
+  margin: 0;
   accent-color: var(--accent-primary);
+  cursor: pointer;
 }
 
 .mixer__eq {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
+  gap: 9px;
 }
 
 .mixer__eq-control {
   display: flex;
   min-width: 0;
   flex-direction: column;
-  gap: 5px;
+  gap: 6px;
   color: var(--text-tertiary);
   font-size: 8px;
-  letter-spacing: 0.06em;
+  font-weight: 700;
+  letter-spacing: 0.08em;
 }
 
 .mixer__eq-control strong {
@@ -108,18 +128,57 @@
 .mixer__eq-control input {
   width: 100%;
   margin: 0;
-  accent-color: var(--accent-blue);
+  accent-color: var(--deck-a-color);
+  cursor: pointer;
+}
+
+.mixer__channel:nth-of-type(2) .mixer__eq-control input {
+  accent-color: var(--deck-b-color);
 }
 
 .mixer__crossfader-block {
-  padding-top: var(--space-sm);
-  border-top: 1px solid var(--divider);
+  gap: 10px;
 }
 
-.mixer__phase-note {
-  margin: auto 0 0;
+.mixer__label-row--crossfader strong {
   color: var(--text-secondary);
-  font-size: var(--font-size-sm);
-  line-height: 1.6;
-  text-align: center;
+  font-family: var(--font-primary);
+  font-size: 9px;
+  letter-spacing: 0.1em;
+}
+
+.mixer__crossfader {
+  accent-color: var(--accent-primary);
+}
+
+@media (max-width: 1120px) {
+  .mixer {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(180px, 0.8fr);
+    align-items: start;
+    gap: 16px;
+  }
+
+  .mixer__header {
+    grid-column: 1 / -1;
+  }
+
+  .mixer__channel {
+    padding-bottom: 0;
+    border-bottom: 0;
+  }
+
+  .mixer__crossfader-block {
+    align-self: center;
+  }
+}
+
+@media (max-width: 700px) {
+  .mixer {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .mixer__header {
+    grid-column: auto;
+  }
 }

@@ -1,74 +1,61 @@
-/* =========================================================
-   Library — Bottom panel track browser
-   Resembles Rekordbox-style library: header tabs, scrollable
-   track grid, and a tiny status bar.
-   ========================================================= */
-
-/* ── Container ──────────────────────────────── */
 .library {
-  height: var(--library-height, 220px);
-  background: var(--bg-secondary);
-  border-top: 1px solid var(--border-color, #2a2a38);
   display: flex;
+  min-height: 330px;
   flex-direction: column;
+  margin: 0 clamp(14px, 2vw, 28px) 28px;
   overflow: hidden;
-  user-select: none;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  background: linear-gradient(155deg, rgba(20, 28, 40, 0.96), rgba(13, 18, 27, 0.98));
+  box-shadow: var(--shadow-md);
 }
 
-/* ── 1. Header Bar ──────────────────────────── */
 .library__header {
   display: flex;
+  min-height: 82px;
   align-items: center;
   justify-content: space-between;
-  padding: 0 var(--space-sm, 8px);
-  height: 36px;
-  min-height: 36px;
-  background: var(--bg-tertiary, #1a1a24);
-  border-bottom: 1px solid var(--border-color, #2a2a38);
+  gap: 18px;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--border-color);
+  background: rgba(255, 255, 255, 0.018);
 }
 
-/* Tab strip */
-.library__tabs {
+.library__heading {
   display: flex;
-  gap: var(--space-xs, 4px);
+  align-items: center;
+  gap: 14px;
 }
 
-.library__tab {
-  background: none;
-  border: none;
-  border-bottom: 2px solid transparent;
-  color: var(--text-tertiary, #6b6b80);
-  font-family: var(--font-primary, sans-serif);
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.05em;
-  padding: 8px 12px;
-  cursor: pointer;
-  transition: color 0.15s, border-color 0.15s;
+.library__heading h2 {
+  margin: 4px 0 0;
+  font-size: 17px;
+  font-weight: 650;
+  letter-spacing: -0.02em;
 }
 
-.library__tab:disabled {
-  cursor: not-allowed;
-  opacity: 0.45;
+.library__eyebrow {
+  color: var(--text-tertiary);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
 }
 
-.library__tab:hover {
-  color: var(--text-secondary, #a0a0b8);
+.library__track-count {
+  padding: 5px 9px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-full);
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: 10px;
 }
 
-.library__tab--active {
-  color: var(--text-primary, #f0f0f5);
-  border-bottom-color: var(--accent-primary, #7c3aed);
-}
-
-/* Right-side actions (search + import) */
 .library__header-actions {
   display: flex;
   align-items: center;
-  gap: var(--space-sm, 8px);
+  gap: 10px;
 }
 
-/* Search input wrapper */
 .library__search-wrapper {
   position: relative;
   display: flex;
@@ -77,171 +64,148 @@
 
 .library__search-icon {
   position: absolute;
-  left: 8px;
-  font-size: 12px;
+  left: 11px;
+  width: 15px;
+  height: 15px;
+  fill: none;
+  stroke: var(--text-tertiary);
+  stroke-linecap: round;
+  stroke-width: 1.6;
   pointer-events: none;
-  opacity: 0.6;
 }
 
 .library__search {
-  width: 180px;
-  height: 26px;
-  padding: 0 10px 0 28px;
-  background: var(--bg-tertiary, #1a1a24);
-  border: 1px solid var(--border-color, #2a2a38);
-  border-radius: var(--radius-full, 9999px);
-  color: var(--text-secondary, #a0a0b8);
-  font-family: var(--font-primary, sans-serif);
+  width: clamp(160px, 20vw, 250px);
+  height: 38px;
+  padding: 0 12px 0 34px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  background: rgba(5, 9, 15, 0.48);
+  color: var(--text-primary);
   font-size: 12px;
   outline: none;
-  transition: border-color 0.15s, background 0.15s;
+  transition: border-color var(--transition-fast), background var(--transition-fast);
 }
 
 .library__search::placeholder {
-  color: var(--text-tertiary, #6b6b80);
+  color: var(--text-tertiary);
 }
 
 .library__search:focus {
-  border-color: var(--accent-primary, #7c3aed);
-  background: var(--bg-elevated, #22222e);
-}
-
-/* Import button */
-.library__import-btn {
-  height: 26px;
-  padding: 0 12px;
-  background: transparent;
-  border: 1px solid var(--accent-primary, #7c3aed);
-  border-radius: var(--radius-sm, 4px);
-  color: var(--accent-primary, #7c3aed);
-  font-family: var(--font-primary, sans-serif);
-  font-size: 11px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.15s, color 0.15s;
-  white-space: nowrap;
-}
-
-.library__import-btn:hover {
-  background: var(--accent-primary, #7c3aed);
-  color: var(--text-primary, #f0f0f5);
+  border-color: rgba(156, 104, 255, 0.6);
+  background: rgba(5, 9, 15, 0.78);
 }
 
 .library__import-input {
   display: none;
 }
 
-/* ── 2. Track List (Grid) ───────────────────── */
+.library__import-btn {
+  display: inline-flex;
+  height: 38px;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 0 13px;
+  border: 1px solid rgba(173, 135, 255, 0.34);
+  border-radius: var(--radius-sm);
+  background: linear-gradient(135deg, rgba(156, 104, 255, 0.2), rgba(98, 70, 177, 0.14));
+  color: #ddccff;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background var(--transition-fast), border-color var(--transition-fast), transform var(--transition-fast);
+}
+
+.library__import-btn:hover {
+  transform: translateY(-1px);
+  border-color: rgba(173, 135, 255, 0.7);
+  background: rgba(156, 104, 255, 0.28);
+}
+
+.library__import-btn > span {
+  font-size: 17px;
+  font-weight: 400;
+  line-height: 1;
+}
+
 .library__tracklist {
   flex: 1;
-  overflow-y: auto;
-  overflow-x: hidden;
+  overflow: auto;
 }
 
-/* Thin custom scrollbar to match dark theme */
-.library__tracklist::-webkit-scrollbar {
-  width: 6px;
-}
-.library__tracklist::-webkit-scrollbar-track {
-  background: transparent;
-}
-.library__tracklist::-webkit-scrollbar-thumb {
-  background: var(--bg-surface, #2a2a38);
-  border-radius: 3px;
-}
-
-/* Grid row — shared by header & track rows
-   Columns:  #  Title  Artist  Album  BPM  Duration  Key  Actions */
 .library__row {
   display: grid;
-  grid-template-columns: 36px 1.8fr 1.2fr 1fr 56px 72px 48px 110px;
+  grid-template-columns: 44px minmax(150px, 2fr) minmax(110px, 1.1fr) minmax(95px, 1fr) 64px 86px 56px 86px;
   align-items: center;
-  padding: 0 var(--space-sm, 8px);
-  min-height: 30px;
+  min-width: 720px;
+  padding: 0 16px;
 }
 
-/* Header row */
 .library__row--header {
   position: sticky;
   top: 0;
   z-index: 1;
-  background: var(--bg-secondary, #111118);
-  border-bottom: 1px solid var(--border-color, #2a2a38);
-  min-height: 28px;
+  min-height: 34px;
+  border-bottom: 1px solid var(--border-color);
+  background: #111823;
 }
 
 .library__row--header .library__cell {
-  color: var(--text-tertiary, #6b6b80);
-  font-size: 10px;
+  color: var(--text-tertiary);
+  font-size: 9px;
   font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  letter-spacing: 0.12em;
 }
 
-/* Track row */
 .library__row--track {
-  cursor: default;
-  transition: background 0.12s;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+  min-height: 49px;
+  border-bottom: 1px solid rgba(170, 192, 220, 0.055);
+  transition: background var(--transition-fast);
 }
 
 .library__row--track:hover {
-  background: var(--bg-elevated, #22222e);
+  background: rgba(124, 153, 196, 0.07);
 }
 
-.library__empty {
-  padding: 20px 12px;
-  color: var(--text-tertiary);
-  font-size: 12px;
-  text-align: center;
-}
-
-/* Individual cell */
 .library__cell {
-  font-family: var(--font-primary, sans-serif);
-  font-size: 12px;
-  color: var(--text-secondary, #a0a0b8);
-  white-space: nowrap;
+  min-width: 0;
   overflow: hidden;
+  padding: 0 5px;
+  color: var(--text-secondary);
+  font-size: 11px;
   text-overflow: ellipsis;
-  padding: 0 4px;
+  white-space: nowrap;
 }
 
-/* Monospaced cells for numbers */
-.library__cell--mono {
-  font-family: var(--font-mono, monospace);
-  font-size: 11px;
-}
-
-/* Row number column — dimmer */
 .library__cell--num {
-  color: var(--text-tertiary, #6b6b80);
+  color: var(--text-tertiary);
+  font-family: var(--font-mono);
+  font-size: 10px;
   text-align: center;
-  font-size: 11px;
 }
 
-/* Title column — brighter */
 .library__cell--title {
-  color: var(--text-primary, #f0f0f5);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.library__access-note {
+  color: var(--color-paused);
+  font-size: 9px;
   font-weight: 500;
 }
 
-/* BPM — accent tint */
-.library__cell--bpm {
+.library__cell--mono {
+  font-family: var(--font-mono);
+  font-size: 10px;
   text-align: center;
 }
 
-/* Duration */
-.library__cell--duration {
-  text-align: center;
-}
-
-/* Key */
-.library__cell--key {
-  text-align: center;
-}
-
-/* ── Load-to-Deck Buttons (hover reveal) ──── */
 .library__cell--actions {
   display: flex;
   justify-content: flex-end;
@@ -250,59 +214,84 @@
 
 .library__load-buttons {
   display: flex;
-  gap: 4px;
-  animation: library-fade-in 0.12s ease-out;
-}
-
-@keyframes library-fade-in {
-  from { opacity: 0; transform: translateX(4px); }
-  to   { opacity: 1; transform: translateX(0); }
+  gap: 5px;
 }
 
 .library__load-btn {
-  height: 20px;
-  padding: 0 8px;
-  font-family: var(--font-primary, sans-serif);
+  width: 28px;
+  height: 25px;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.055);
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
   font-size: 10px;
   font-weight: 700;
-  letter-spacing: 0.03em;
-  border: none;
-  border-radius: var(--radius-sm, 4px);
   cursor: pointer;
-  transition: filter 0.12s;
+  transition: transform var(--transition-fast), background var(--transition-fast);
 }
 
 .library__load-btn:hover {
-  filter: brightness(1.25);
+  transform: translateY(-1px);
 }
 
-/* Deck A — blue */
 .library__load-btn--a {
-  background: var(--deck-a-color, #3b82f6);
-  color: #fff;
+  border-color: rgba(66, 165, 255, 0.24);
+  color: var(--deck-a-color);
 }
 
-/* Deck B — purple */
+.library__load-btn--a:hover {
+  background: rgba(66, 165, 255, 0.16);
+}
+
 .library__load-btn--b {
-  background: var(--deck-b-color, #a855f7);
-  color: #fff;
+  border-color: rgba(189, 115, 255, 0.24);
+  color: var(--deck-b-color);
 }
 
-/* ── 3. Bottom Status Bar ───────────────────── */
+.library__load-btn--b:hover {
+  background: rgba(189, 115, 255, 0.16);
+}
+
+.library__empty {
+  padding: 36px 16px;
+  color: var(--text-tertiary);
+  font-size: 12px;
+  text-align: center;
+}
+
 .library__status {
   display: flex;
+  min-height: 36px;
   align-items: center;
-  gap: var(--space-sm, 8px);
-  height: 22px;
-  min-height: 22px;
-  padding: 0 var(--space-md, 16px);
-  background: var(--bg-tertiary, #1a1a24);
-  border-top: 1px solid var(--border-color, #2a2a38);
-  font-family: var(--font-primary, sans-serif);
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 18px;
+  border-top: 1px solid var(--border-color);
+  color: var(--text-tertiary);
   font-size: 10px;
-  color: var(--text-tertiary, #6b6b80);
 }
 
-.library__status-sep {
-  opacity: 0.4;
+@media (max-width: 700px) {
+  .library {
+    margin: 0 12px 20px;
+  }
+
+  .library__header {
+    align-items: flex-start;
+    flex-direction: column;
+    padding: 15px;
+  }
+
+  .library__header-actions {
+    width: 100%;
+  }
+
+  .library__search-wrapper {
+    flex: 1;
+  }
+
+  .library__search {
+    width: 100%;
+  }
 }

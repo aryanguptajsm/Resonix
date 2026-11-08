@@ -4,6 +4,7 @@ import Deck from './components/deck/Deck.jsx';
 import TopBar from './components/layout/TopBar.jsx';
 import Library from './components/library/Library.jsx';
 import Mixer from './components/mixer/Mixer.jsx';
+import { getSavedLibraryTracks, saveLibraryTrack } from './audio/libraryStore.js';
 
 const DEVELOPMENT_STAGES = [
   { id: 'phase-1', label: 'Phase 1', name: 'Interface shell', done: true },
@@ -14,7 +15,7 @@ const DEVELOPMENT_STAGES = [
   { id: 'phase-6', label: 'Phase 6', name: 'Real waveforms', done: true },
   { id: 'phase-7', label: 'Phase 7', name: 'Approx. BPM detection', done: true },
   { id: 'phase-8', label: 'Phase 8', name: 'Approx. sync & pitch', done: true },
-  { id: 'phase-9', label: 'Phase 9', name: 'Approx. beat loops', done: true },
+  { id: 'phase-9', label: 'Phase 9', name: 'Beat-grid analysis', done: true },
   { id: 'phase-10', label: 'Phase 10', name: 'Audio effects', done: true },
   { id: 'phase-11', label: 'Phase 11', name: 'Library & playlists', done: false },
   { id: 'phase-12', label: 'Phase 12', name: 'Mix recording', done: false },
@@ -38,12 +39,79 @@ function App() {
   const [crossfader, setCrossfader] = useState(0);
   const [activePage, setActivePage] = useState('studio');
   const [notice, setNotice] = useState('');
+  const [libraryReady, setLibraryReady] = useState(false);
   const objectUrls = useRef(new Set());
   const appRef = useRef(null);
 
-  useEffect(() => () => {
-    objectUrls.current.forEach((url) => URL.revokeObjectURL(url));
+  useEffect(() => {
+    let cancelled = false;
+
+    getSavedLibraryTracks().then(async (savedTracks) => {
+      const restoreResults = await Promise.all(savedTracks.map(async (savedTrack) => {
+        try {
+          const permission = await savedTrack.handle.queryPermission({ mode: 'read' });
+          if (permission !== 'granted') {
+            return { track: { ...savedTrack, file: null, url: '', needsAccess: true } };
+          }
+
+          const file = await savedTrack.handle.getFile();
+          const url = URL.createObjectURL(file);
+          objectUrls.current.add(url);
+          return { track: { ...savedTrack, file, url, needsAccess: false } };
+        } catch (error) {
+          return {
+            track: { ...savedTrack, file: null, url: '', needsAccess: true },
+            error,
+          };
+        }
+      }));
+      const restoredTracks = restoreResults.map(({ track }) => track);
+
+      if (cancelled) {
+        restoredTracks.forEach((track) => {
+          if (track.url) URL.revokeObjectURL(track.url);
+        });
+        return;
+      }
+
+      setTracks(restoredTracks);
+      const savedDeckIds = JSON.parse(localStorage.getItem('resonix-decks') || '{}');
+      setDeckTracks({
+        A: restoredTracks.find((track) => track.id === savedDeckIds.A) || null,
+        B: restoredTracks.find((track) => track.id === savedDeckIds.B) || null,
+      });
+      const failedRestores = restoreResults.filter((result) => result.error);
+      if (failedRestores.length > 0) {
+        setNotice(`Could not reopen ${failedRestores.length} saved track(s): ${failedRestores.map(({ error }) => error.message).join('; ')}`);
+      } else if (restoredTracks.some((track) => track.needsAccess)) {
+        setNotice('Some tracks need file access. Choose Load A or Load B to reconnect them.');
+      }
+      setLibraryReady(true);
+    }).catch((restoreError) => {
+      if (!cancelled) {
+        setNotice(`Could not restore the saved music library: ${restoreError.message}`);
+        setLibraryReady(true);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+      objectUrls.current.forEach((url) => URL.revokeObjectURL(url));
+      objectUrls.current.clear();
+    };
   }, []);
+
+  useEffect(() => {
+    if (!libraryReady) return;
+    try {
+      localStorage.setItem('resonix-decks', JSON.stringify({
+        A: deckTracks.A?.id || null,
+        B: deckTracks.B?.id || null,
+      }));
+    } catch (error) {
+      setNotice(`Could not save your deck assignments: ${error.message}`);
+    }
+  }, [deckTracks, libraryReady]);
 
   const getDeckOutputVolume = (deckId) => {
     const normalized = (crossfader + 1) / 2;
@@ -57,14 +125,14 @@ function App() {
     return rightMix;
   };
 
-  const handleImport = (files) => {
-    const acceptedFiles = files.filter((file) => (
+  const handleImport = (files, handles = []) => {
+    const acceptedFiles = files.map((file, index) => ({ file, handle: handles[index] || null })).filter(({ file }) => (
       file.type.startsWith('audio/')
       || /\.(mp3|wav|ogg|flac|m4a|aac|opus)$/i.test(file.name)
     ));
     const rejectedCount = files.length - acceptedFiles.length;
 
-    const importedTracks = acceptedFiles.map((file) => {
+    const importedTracks = acceptedFiles.map(({ file, handle }) => {
       const url = URL.createObjectURL(file);
       objectUrls.current.add(url);
       return {
@@ -77,23 +145,52 @@ function App() {
         duration: null,
         file,
         url,
+        handle,
+        needsAccess: false,
       };
     });
 
     if (importedTracks.length > 0) {
       setTracks((currentTracks) => [...currentTracks, ...importedTracks]);
+      Promise.all(importedTracks.map(saveLibraryTrack)).catch((saveError) => {
+        setNotice(`Tracks were imported, but could not be saved for next time: ${saveError.message}`);
+      });
       const skippedMessage = rejectedCount > 0
-        ? ` ${rejectedCount} non-audio file(s) skip hui.`
+        ? ` ${rejectedCount} unsupported file(s) were skipped.`
         : '';
-      setNotice(`${importedTracks.length} audio file(s) library mein add hue.${skippedMessage}`);
+      const persistenceMessage = importedTracks.some((track) => !track.handle)
+        ? ' This browser could not save file access; re-import these tracks after restarting.'
+        : ' File access and deck assignments will be remembered.';
+      setNotice(`${importedTracks.length} track(s) added to your library.${skippedMessage}${persistenceMessage}`);
     } else if (rejectedCount > 0) {
-      setNotice('Selected files supported audio format mein nahi hain.');
+      setNotice('The selected files are not in a supported audio format.');
     }
   };
 
-  const handleLoadToDeck = (track, deckId) => {
-    setDeckTracks((current) => ({ ...current, [deckId]: track }));
-    setNotice(`${track.title} Deck ${deckId} mein load hua.`);
+  const handleLoadToDeck = async (track, deckId) => {
+    let readyTrack = track;
+    if (track.needsAccess) {
+      try {
+        const permission = await track.handle.requestPermission({ mode: 'read' });
+        if (permission !== 'granted') {
+          setNotice(`Access to ${track.title} was not granted. Choose Load again to retry.`);
+          return;
+        }
+        const file = await track.handle.getFile();
+        const url = URL.createObjectURL(file);
+        objectUrls.current.add(url);
+        readyTrack = { ...track, file, url, needsAccess: false };
+        setTracks((currentTracks) => currentTracks.map((item) => (
+          item.id === track.id ? readyTrack : item
+        )));
+      } catch (accessError) {
+        setNotice(`Could not reopen ${track.title}: ${accessError.message}`);
+        return;
+      }
+    }
+
+    setDeckTracks((current) => ({ ...current, [deckId]: readyTrack }));
+    setNotice(`${track.title} loaded to Deck ${deckId}.`);
   };
 
   const handleDurationChange = (trackId, duration) => {
@@ -212,6 +309,7 @@ function App() {
               tracks={tracks}
               onImport={handleImport}
               onLoadToDeck={handleLoadToDeck}
+              onImportError={(error) => setNotice(`Could not import audio: ${error.message}`)}
             />
           </div>
         </>

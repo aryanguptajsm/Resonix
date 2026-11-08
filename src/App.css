@@ -1,50 +1,48 @@
-/* ============================================
-   RESONIX — App Layout Styles
-   =========================================== */
-
 .app {
   display: flex;
-  flex-direction: column;
-  height: 100vh;
-  height: 100dvh;
   min-height: 100vh;
-  width: 100vw;
-  background: var(--bg-primary);
-  overflow-x: hidden;
-  overflow-y: auto;
-}
-
-/* ---- Main Content Area ---- */
-/* Yeh top bar aur library ke beech ka area hai
-   jahan decks aur mixer dikhte hain */
-.main-area {
-  flex: 0 0 auto;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 230px;
-  gap: var(--space-sm);
-  padding: var(--space-sm);
-  min-height: auto;
+  flex-direction: column;
   overflow: visible;
 }
 
+.main-area {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(228px, 0.48fr);
+  align-items: stretch;
+  gap: 16px;
+  width: 100%;
+  padding: 18px clamp(14px, 2vw, 28px) 20px;
+}
+
 .app__notice {
+  position: sticky;
+  top: var(--topbar-height);
+  z-index: 20;
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  gap: var(--space-md);
-  padding: 6px var(--space-lg);
-  color: var(--text-secondary);
-  background: var(--bg-tertiary);
+  justify-content: space-between;
+  gap: 16px;
+  padding: 11px 22px;
   border-bottom: 1px solid var(--border-color);
-  font-size: var(--font-size-sm);
+  background: #171d29;
+  color: var(--text-secondary);
+  font-size: 13px;
 }
 
 .app__notice button {
+  width: 28px;
+  height: 28px;
   border: 0;
-  color: var(--text-secondary);
+  border-radius: var(--radius-sm);
   background: transparent;
-  font-size: 18px;
+  color: var(--text-secondary);
+  font-size: 20px;
   cursor: pointer;
+}
+
+.app__notice button:hover {
+  background: var(--bg-elevated);
+  color: var(--text-primary);
 }
 
 .roadmap-page {
@@ -54,62 +52,65 @@
 }
 
 .roadmap-page__header {
-  position: relative;
   margin-bottom: 28px;
-  padding: 24px;
+  padding: clamp(22px, 4vw, 38px);
   border: 1px solid var(--border-color);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-xl);
   background:
-    radial-gradient(ellipse at 100% 0, rgba(124, 58, 237, 0.16), transparent 55%),
+    radial-gradient(ellipse at 100% 0, rgba(124, 92, 224, 0.2), transparent 55%),
     var(--bg-secondary);
+  box-shadow: var(--shadow-md);
 }
 
 .roadmap-page__eyebrow {
   color: var(--text-accent);
   font-size: 10px;
-  letter-spacing: 0.14em;
+  font-weight: 700;
+  letter-spacing: 0.16em;
 }
 
 .roadmap-page__header h1 {
-  margin-top: 10px;
-  font-size: clamp(24px, 4vw, 34px);
+  margin: 10px 0 0;
+  font-size: clamp(28px, 4vw, 38px);
 }
 
 .roadmap-page__header p {
-  max-width: 560px;
-  margin-top: 8px;
+  max-width: 580px;
+  margin: 10px 0 0;
   color: var(--text-secondary);
-  font-size: var(--font-size-sm);
-  line-height: 1.6;
+  font-size: 14px;
+  line-height: 1.7;
 }
 
 .roadmap-page__progress {
   display: flex;
   align-items: baseline;
-  gap: 8px;
-  margin-top: 20px;
+  gap: 9px;
+  margin-top: 22px;
   color: var(--text-tertiary);
-  font-size: var(--font-size-sm);
+  font-size: 13px;
 }
 
 .roadmap-page__progress strong {
   color: var(--color-playing);
   font-family: var(--font-mono);
-  font-size: 20px;
+  font-size: 22px;
 }
 
 .roadmap-page__list {
   display: grid;
-  gap: 8px;
+  gap: 9px;
+  margin: 0;
+  padding: 0;
   list-style: none;
 }
 
 .roadmap-page__item {
   display: grid;
-  grid-template-columns: 28px minmax(72px, 110px) minmax(0, 1fr) auto;
+  grid-template-columns: 30px minmax(75px, 110px) minmax(0, 1fr) auto;
   align-items: center;
   gap: 12px;
-  min-height: 54px;
+  min-height: 58px;
   padding: 10px 16px;
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
@@ -118,8 +119,8 @@
 
 .roadmap-page__check {
   display: grid;
-  width: 24px;
-  height: 24px;
+  width: 25px;
+  height: 25px;
   place-items: center;
   border-radius: 50%;
   background: var(--bg-elevated);
@@ -127,11 +128,12 @@
 }
 
 .roadmap-page__item--done {
-  border-color: rgba(34, 197, 94, 0.24);
+  border-color: rgba(70, 219, 155, 0.22);
 }
 
-.roadmap-page__item--done .roadmap-page__check {
-  background: rgba(34, 197, 94, 0.12);
+.roadmap-page__item--done .roadmap-page__check,
+.roadmap-page__item--done .roadmap-page__status {
+  background: rgba(70, 219, 155, 0.12);
   color: var(--color-playing);
 }
 
@@ -145,32 +147,28 @@
 
 .roadmap-page__name {
   color: var(--text-primary);
-  font-size: var(--font-size-sm);
+  font-size: 13px;
 }
 
 .roadmap-page__status {
   text-align: right;
 }
 
-.roadmap-page__item--done .roadmap-page__status {
-  color: var(--color-playing);
-}
-
-@media (max-width: 900px) {
+@media (max-width: 1120px) {
   .main-area {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   }
 
   .mixer {
     grid-column: 1 / -1;
-    width: auto;
-    min-width: 0;
   }
 }
 
-@media (max-width: 600px) {
+@media (max-width: 700px) {
   .main-area {
     grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+    padding: 12px;
   }
 
   .mixer {

@@ -1,130 +1,140 @@
-/* ═══════════════════════════════════════════════════════════════
-   Deck.css — Styling for a single DJ deck panel in RESONIX
-   Uses BEM-style naming.  The component sets the CSS variable
-   --_deck-color inline so every child can reference it.
-   ═══════════════════════════════════════════════════════════════ */
-
-/* ── Container ─────────────────────────────────────────────── */
 .deck {
-  min-width: 0;
-  min-height: 650px;
-  min-height: 520px;
-  flex: 1;
+  position: relative;
   display: flex;
+  min-width: 0;
+  min-height: 610px;
   flex-direction: column;
-  gap: var(--space-sm, 8px);
-  padding: var(--space-md, 16px);
-  background: var(--bg-secondary, #111118);
-  border-radius: var(--radius-lg, 12px);
-  /* Colored accent line along the top */
-  border-top: 2px solid var(--_deck-color);
+  gap: 14px;
+  padding: clamp(14px, 1.5vw, 20px);
   overflow: hidden;
+  border: 1px solid var(--border-color);
+  border-top: 2px solid var(--_deck-color);
+  border-radius: var(--radius-lg);
+  background:
+    radial-gradient(ellipse at 2% 0, color-mix(in srgb, var(--_deck-color) 9%, transparent), transparent 36%),
+    linear-gradient(155deg, #121923 0%, #0d131c 100%);
+  box-shadow: var(--shadow-md);
 }
 
-/* ══════════════════════════════════════════════════════════════
-   1. DECK HEADER
-   ══════════════════════════════════════════════════════════════ */
+.deck::after {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 35%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--_deck-color) 35%, transparent));
+  content: "";
+  pointer-events: none;
+}
+
 .deck__header {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: var(--space-sm, 8px);
+  gap: 12px;
 }
 
-/* Left side: label + track info */
-.deck__header-left {
+.deck__header-left,
+.deck__track-info {
   display: flex;
+  min-width: 0;
   flex-direction: column;
-  gap: 2px;
-  min-width: 0; /* allow text truncation */
+}
+
+.deck__header-left {
+  gap: 8px;
 }
 
 .deck__label {
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 1.5px;
-  text-transform: uppercase;
   color: var(--_deck-color);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.17em;
 }
 
 .deck__track-info {
-  display: flex;
-  flex-direction: column;
+  gap: 4px;
 }
 
 .deck__track-title {
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--text-secondary, #a0a0b8);
-  white-space: nowrap;
   overflow: hidden;
+  color: var(--text-primary);
+  font-size: 15px;
+  font-weight: 650;
+  letter-spacing: -0.02em;
   text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .deck__track-artist {
+  overflow: hidden;
+  color: var(--text-tertiary);
   font-size: 11px;
-  color: var(--text-tertiary, #6b6b80);
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-/* Right side: BPM + time */
 .deck__header-right {
   display: flex;
-  flex-direction: column;
+  flex: 0 0 auto;
   align-items: flex-end;
-  gap: 2px;
-  flex-shrink: 0;
+  gap: 8px;
 }
 
 .deck__bpm {
   display: flex;
+  min-width: 76px;
   flex-direction: column;
-  align-items: flex-end;
+  align-items: center;
+  gap: 3px;
+  padding: 7px 10px;
+  border: 1px solid color-mix(in srgb, var(--_deck-color) 24%, transparent);
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--_deck-color) 8%, transparent);
 }
 
 .deck__bpm-value {
-  font-family: var(--font-mono, monospace);
-  font-size: 20px;
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 19px;
   font-weight: 700;
-  color: var(--text-primary, #f0f0f5);
   line-height: 1;
 }
 
 .deck__bpm-label {
-  font-size: 9px;
-  letter-spacing: 1px;
-  color: var(--text-tertiary, #6b6b80);
-  text-transform: uppercase;
+  color: var(--text-tertiary);
+  font-size: 7px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  white-space: nowrap;
 }
 
 .deck__time-value {
-  font-family: var(--font-mono, monospace);
-  font-size: 12px;
-  color: var(--text-secondary, #a0a0b8);
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  white-space: nowrap;
 }
 
-/* ══════════════════════════════════════════════════════════════
-   2. WAVEFORM AREA
-   ══════════════════════════════════════════════════════════════ */
 .deck__waveform-toolbar {
   display: flex;
+  min-height: 18px;
   align-items: center;
   justify-content: space-between;
-  gap: var(--space-sm);
-  min-height: 26px;
 }
 
 .deck__waveform-meta {
   display: flex;
-  align-items: baseline;
-  gap: 8px;
   min-width: 0;
+  align-items: center;
+  gap: 10px;
 }
 
 .deck__waveform-title {
   color: var(--text-secondary);
   font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 0.1em;
+  font-weight: 800;
+  letter-spacing: 0.13em;
 }
 
 .deck__waveform-time-range {
@@ -134,55 +144,19 @@
   white-space: nowrap;
 }
 
-.deck__waveform-controls {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.deck__waveform-zoom,
-.deck__waveform-nav {
-  display: grid;
-  min-width: 27px;
-  height: 22px;
-  place-items: center;
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-sm);
-  background: var(--bg-tertiary);
-  color: var(--text-secondary);
-  font-size: 9px;
-  cursor: pointer;
-}
-
-.deck__waveform-zoom--active {
-  border-color: var(--_deck-color);
-  background: color-mix(in srgb, var(--_deck-color) 15%, var(--bg-tertiary));
-  color: var(--text-primary);
-}
-
-.deck__waveform-nav {
-  font-size: 15px;
-}
-
-.deck__waveform-zoom:disabled,
-.deck__waveform-nav:disabled {
-  cursor: not-allowed;
-  opacity: 0.4;
-}
-
 .deck__waveform-container {
   position: relative;
-  height: 148px;
-  flex: 0 0 148px;
-  background:
-    linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
-    linear-gradient(180deg, rgba(12, 12, 18, 0.98), rgba(7, 7, 10, 0.96));
-  background-size: 100% 25%, 5% 100%, 100% 100%;
-  border: 1px solid rgba(255, 255, 255, 0.07);
-  border-radius: var(--radius-sm);
+  height: clamp(128px, 13vw, 176px);
+  flex: 0 0 auto;
   overflow: hidden;
-  box-shadow: inset 0 0 24px rgba(0, 0, 0, 0.36);
+  border: 1px solid rgba(164, 188, 219, 0.12);
+  border-radius: var(--radius-sm);
+  background:
+    linear-gradient(rgba(179, 199, 224, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(179, 199, 224, 0.035) 1px, transparent 1px),
+    linear-gradient(180deg, #090e15, #0b1119);
+  background-size: 100% 25%, 5% 100%, 100% 100%;
+  box-shadow: inset 0 0 32px rgba(0, 0, 0, 0.35);
 }
 
 .deck__waveform-canvas {
@@ -205,190 +179,155 @@
   inset: 0;
   display: grid;
   place-items: center;
-  padding: 12px;
+  padding: 16px;
   color: var(--text-tertiary);
-  font-size: 10px;
+  font-size: 11px;
   line-height: 1.5;
   text-align: center;
   pointer-events: none;
 }
 
-.deck__pitch-row {
+.deck__pitch-row,
+.deck__volume {
   display: flex;
+  flex-direction: column;
+}
+
+.deck__pitch-row {
+  flex-direction: row;
   align-items: center;
   justify-content: space-between;
 }
 
-.deck__pitch-indicator {
-  color: var(--text-secondary);
-  font-size: 10px;
-  font-family: var(--font-mono);
-  letter-spacing: 0.06em;
-}
-
-.deck__seek-label {
+.deck__seek-label,
+.deck__volume label,
+.deck__pitch-wrapper label {
   color: var(--text-tertiary);
   font-size: 9px;
+  font-weight: 700;
   letter-spacing: 0.1em;
 }
 
+.deck__pitch-indicator {
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: 9px;
+}
+
 .deck__seek,
-.deck__volume input {
+.deck__volume input,
+.deck__pitch-wrapper input,
+.deck__effect-cutoff input,
+.mixer input[type="range"] {
   width: 100%;
+  margin: 0;
   accent-color: var(--_deck-color);
   cursor: pointer;
+}
+
+.deck__seek {
+  height: 4px;
+  margin-top: -7px;
 }
 
 .deck__seek:disabled {
   cursor: not-allowed;
-  opacity: 0.45;
+  opacity: 0.4;
 }
 
-.deck__volume {
-  display: flex;
-  min-width: 120px;
-  flex: 1;
-  flex-direction: column;
-  gap: 6px;
-  color: var(--text-tertiary);
-  font-size: 9px;
-  letter-spacing: 0.06em;
-}
-
-.deck__pitch-wrapper {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  color: var(--text-tertiary);
-  font-size: 9px;
-  letter-spacing: 0.06em;
-}
-
-.deck__pitch-wrapper input {
-  width: 100%;
-  accent-color: var(--_deck-color);
-}
-
-/* ══════════════════════════════════════════════════════════════
-   3. TRANSPORT CONTROLS
-   ══════════════════════════════════════════════════════════════ */
 .deck__transport {
   display: flex;
-  gap: var(--space-xs, 4px);
+  align-items: center;
   justify-content: center;
+  gap: 9px;
 }
 
 .deck__transport-btn {
   display: inline-flex;
+  min-width: 50px;
+  height: 36px;
   align-items: center;
   justify-content: center;
-  min-width: 48px;
-  height: 32px;
-  padding: 0 var(--space-sm, 8px);
-  border: none;
-  border-radius: var(--radius-md, 8px);
-  background: var(--bg-elevated, #22222e);
-  color: var(--text-secondary, #a0a0b8);
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.5px;
+  padding: 0 13px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-secondary);
+  font-size: 10px;
+  font-weight: 750;
+  letter-spacing: 0.04em;
   cursor: pointer;
-  transition: background 0.15s, color 0.15s, box-shadow 0.15s;
+  transition: background var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast);
 }
 
-.deck__transport-btn:hover {
-  background: var(--bg-surface, #2a2a38);
-  color: var(--text-primary, #f0f0f5);
+.deck__transport-btn:hover:not(:disabled) {
+  border-color: rgba(205, 217, 236, 0.25);
+  background: rgba(255, 255, 255, 0.09);
+  color: var(--text-primary);
 }
 
-.deck__transport-btn:disabled,
-.deck__hotcue-btn:disabled,
-.deck__loop-btn:disabled {
+.deck__transport-btn:disabled {
   cursor: not-allowed;
-  opacity: 0.4;
+  opacity: 0.38;
 }
 
-/* CUE — amber / yellow */
 .deck__transport-btn--cue {
-  color: var(--color-cue, #f59e0b);
-  border: 1px solid var(--color-cue, #f59e0b);
+  color: var(--color-cue);
 }
 
-.deck__transport-btn--cue:hover {
-  background: rgba(245, 158, 11, 0.15);
-}
-
-/* PLAY / PAUSE — green accent */
 .deck__transport-btn--play {
-  color: var(--color-playing, #22c55e);
-  border: 1px solid var(--color-playing, #22c55e);
+  width: 46px;
+  height: 42px;
+  border-color: color-mix(in srgb, var(--_deck-color) 45%, transparent);
+  background: color-mix(in srgb, var(--_deck-color) 13%, transparent);
+  color: var(--_deck-color);
+  font-size: 15px;
 }
 
-.deck__transport-btn--play:hover {
-  background: rgba(34, 197, 94, 0.15);
-}
-
+.deck__transport-btn--play:hover:not(:disabled),
 .deck__transport-btn--active {
-  background: rgba(34, 197, 94, 0.2);
-  box-shadow: 0 0 6px rgba(34, 197, 94, 0.35);
+  background: color-mix(in srgb, var(--_deck-color) 25%, transparent);
+  color: #fff;
 }
 
-/* STOP — subtle */
-.deck__transport-btn--stop {
-  color: var(--text-tertiary, #6b6b80);
-}
-
-/* SYNC — accent colored */
 .deck__transport-btn--sync {
-  color: var(--accent-primary, #7c3aed);
-  border: 1px solid var(--accent-primary, #7c3aed);
+  color: var(--text-accent);
 }
 
-.deck__transport-btn--sync:hover {
-  background: rgba(124, 58, 237, 0.15);
-}
-
-/* ══════════════════════════════════════════════════════════════
-   4 & 5. JOG WHEEL + PITCH SLIDER (side-by-side row)
-   ══════════════════════════════════════════════════════════════ */
 .deck__jog-pitch-row {
   display: flex;
+  min-width: 0;
   align-items: center;
-  justify-content: center;
-  gap: var(--space-lg, 24px);
+  gap: clamp(14px, 2vw, 24px);
+  padding: 8px 0;
 }
 
-.deck__error {
-  color: #fca5a5;
-  font-size: 11px;
-}
-
-/* ── 4. Jog Wheel ── */
 .deck__jog-wrapper {
   display: flex;
+  flex: 0 0 auto;
   flex-direction: column;
   align-items: center;
-  gap: var(--space-xs, 4px);
+  gap: 7px;
 }
 
 .deck__jog {
-  width: 112px;
-  height: 112px;
-  border-radius: var(--radius-full, 9999px);
-  border: 2px solid color-mix(in srgb, var(--_deck-color) 45%, var(--bg-surface));
-  background:
-    radial-gradient(circle, transparent 56%, rgba(255, 255, 255, 0.035) 57%, transparent 58%),
-    var(--bg-primary, #0a0a0f);
   display: flex;
+  width: 88px;
+  height: 88px;
   align-items: center;
   justify-content: center;
+  border: 1px solid color-mix(in srgb, var(--_deck-color) 40%, var(--border-color));
+  border-radius: 50%;
+  background: radial-gradient(circle, #131c29, #080c12 72%);
   cursor: grab;
   touch-action: none;
-  transition: box-shadow 0.25s;
+  transition: box-shadow var(--transition-normal), border-color var(--transition-normal);
 }
 
-.deck__jog:hover {
-  box-shadow: 0 0 14px color-mix(in srgb, var(--_deck-color) 40%, transparent);
+.deck__jog:hover,
+.deck__jog--dragging {
+  border-color: var(--_deck-color);
+  box-shadow: 0 0 25px color-mix(in srgb, var(--_deck-color) 20%, transparent);
 }
 
 .deck__jog:focus-visible {
@@ -396,278 +335,160 @@
   outline-offset: 3px;
 }
 
-.deck__jog[aria-disabled='true'] {
+.deck__jog[aria-disabled="true"] {
   cursor: not-allowed;
   opacity: 0.5;
-}
-
-.deck__jog--dragging {
-  cursor: grabbing;
-  box-shadow: 0 0 18px color-mix(in srgb, var(--_deck-color) 48%, transparent);
 }
 
 .deck__jog-platter {
   position: relative;
   display: grid;
-  width: 86px;
-  height: 86px;
+  width: 70px;
+  height: 70px;
   place-items: center;
-  border: 1px solid rgba(255, 255, 255, 0.16);
+  border: 1px solid rgba(206, 219, 238, 0.12);
   border-radius: 50%;
   background:
-    repeating-radial-gradient(circle, transparent 0 5px, rgba(255, 255, 255, 0.055) 6px, transparent 7px),
-    radial-gradient(circle at 35% 30%, #272a36, #0b0c12 68%);
+    repeating-radial-gradient(circle, transparent 0 4px, rgba(255, 255, 255, 0.06) 5px, transparent 6px),
+    radial-gradient(circle at 35% 30%, #273347, #090d13 72%);
   transform: rotate(var(--jog-angle, 0deg));
 }
 
-.deck__jog[data-playing='true'] .deck__jog-platter {
+.deck__jog[data-playing="true"] .deck__jog-platter {
   animation: deck-jog-spin 3s linear infinite;
 }
 
 @keyframes deck-jog-spin {
-  to {
-    transform: rotate(calc(var(--jog-angle, 0deg) + 360deg));
-  }
+  to { transform: rotate(calc(var(--jog-angle, 0deg) + 360deg)); }
 }
 
 .deck__jog-groove {
   position: absolute;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.09);
   border-radius: 50%;
   pointer-events: none;
 }
 
-.deck__jog-groove--outer {
-  inset: 9px;
-}
+.deck__jog-groove--outer { inset: 8px; }
+.deck__jog-groove--inner { inset: 15px; }
 
-.deck__jog-groove--inner {
-  inset: 17px;
-}
-
-/* Inner concentric circle */
 .deck__jog-inner {
   position: relative;
   display: flex;
-  width: 32px;
-  height: 32px;
+  width: 30px;
+  height: 30px;
   align-items: center;
   justify-content: center;
-  border-radius: var(--radius-full, 9999px);
-  border: 1px solid color-mix(in srgb, var(--_deck-color) 60%, white);
-  background: radial-gradient(circle at 35% 30%, #343746, #11121a 72%);
+  border: 1px solid color-mix(in srgb, var(--_deck-color) 56%, white);
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #3b465b, #111720 75%);
 }
 
 .deck__jog-label-center {
   position: absolute;
-  color: rgba(255, 255, 255, 0.58);
-  font-size: 7px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 6px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
 }
 
-/* Center dot */
 .deck__jog-dot {
   z-index: 1;
   width: 5px;
   height: 5px;
-  border-radius: var(--radius-full, 9999px);
+  border-radius: 50%;
   background: var(--_deck-color);
   box-shadow: 0 0 7px var(--_deck-color);
 }
 
 .deck__jog-label {
-  font-size: 9px;
-  letter-spacing: 1.5px;
-  color: var(--text-tertiary, #6b6b80);
-  text-transform: uppercase;
+  color: var(--text-tertiary);
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
 }
 
-/* ── 5. Pitch / Tempo Slider ── */
-.deck__pitch {
+.deck__volume {
+  min-width: 0;
+  flex: 1;
+  gap: 10px;
+  color: var(--text-secondary);
+}
+
+.deck__volume input {
+  accent-color: var(--_deck-color);
+}
+
+.deck__pitch-wrapper {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: var(--space-xs, 4px);
-  height: 160px; /* match jog wheel height roughly */
+  gap: 9px;
+  padding: 12px 13px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.025);
 }
 
-.deck__pitch-label {
-  font-size: 9px;
-  letter-spacing: 1.5px;
-  color: var(--text-tertiary, #6b6b80);
-  text-transform: uppercase;
-}
-
-.deck__pitch-slider {
-  writing-mode: vertical-lr;     /* makes the slider vertical */
-  direction: rtl;                /* high value at top */
-  appearance: none;
-  -webkit-appearance: none;
-  width: 6px;
-  flex: 1;
-  background: var(--bg-elevated, #22222e);
-  border-radius: 3px;
-  outline: none;
-  cursor: pointer;
-}
-
-/* Thumb styling (Webkit / Blink) */
-.deck__pitch-slider::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  width: 16px;
-  height: 8px;
-  border-radius: 2px;
-  background: var(--_deck-color);
-  cursor: pointer;
-}
-
-/* Thumb styling (Firefox) */
-.deck__pitch-slider::-moz-range-thumb {
-  width: 16px;
-  height: 8px;
-  border: none;
-  border-radius: 2px;
-  background: var(--_deck-color);
-  cursor: pointer;
-}
-
-.deck__pitch-value {
-  font-family: var(--font-mono, monospace);
-  font-size: 11px;
-  color: var(--text-secondary, #a0a0b8);
-}
-
-/* ══════════════════════════════════════════════════════════════
-   6. HOT CUE BUTTONS
-   ══════════════════════════════════════════════════════════════ */
-.deck__hotcues {
-  display: flex;
-  gap: var(--space-xs, 4px);
-  justify-content: center;
-}
-
-.deck__hotcue-btn {
-  width: 28px;
-  height: 28px;
-  border: none;
-  border-radius: var(--radius-sm, 4px);
-  background: var(--bg-surface, #2a2a38);
-  color: var(--text-tertiary, #6b6b80);
-  font-size: 11px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.15s, color 0.15s;
-}
-
-.deck__hotcue-btn:hover {
-  background: var(--bg-elevated, #22222e);
-  color: var(--text-primary, #f0f0f5);
-}
-
-/* ══════════════════════════════════════════════════════════════
-   7. LOOP CONTROLS
-   ══════════════════════════════════════════════════════════════ */
-.deck__loops {
-  display: flex;
-  gap: var(--space-xs, 4px);
-  justify-content: center;
-}
-
-.deck__loop-btn {
-  min-width: 32px;
-  height: 26px;
-  padding: 0 var(--space-xs, 4px);
-  border: none;
-  border-radius: var(--radius-sm, 4px);
-  background: var(--bg-surface, #2a2a38);
-  color: var(--text-tertiary, #6b6b80);
-  font-size: 10px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.15s, color 0.15s;
-}
-
-.deck__loop-btn:hover {
-  background: var(--bg-elevated, #22222e);
-  color: var(--text-primary, #f0f0f5);
-}
-
-.deck__loop-btn--selected {
-  border: 1px solid var(--_deck-color);
-  color: var(--text-primary);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--_deck-color) 35%, transparent);
-}
-
-.deck__loop-btn--active {
-  background: color-mix(in srgb, var(--_deck-color) 20%, var(--bg-surface));
-  color: var(--_deck-color);
-  box-shadow: 0 0 8px color-mix(in srgb, var(--_deck-color) 30%, transparent);
-}
-
-/* LOOP toggle gets a subtle accent border */
-.deck__loop-btn--toggle {
-  border: 1px solid var(--_deck-color);
-  color: var(--_deck-color);
-  letter-spacing: 0.5px;
-}
-
-.deck__loop-btn--toggle:hover {
-  background: color-mix(in srgb, var(--_deck-color) 15%, transparent);
+.deck__pitch-wrapper input {
+  accent-color: var(--_deck-color);
 }
 
 .deck__effects {
   display: grid;
-  gap: 8px;
-  padding: 9px 10px 10px;
+  gap: 10px;
+  margin-top: auto;
+  padding: 12px;
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.025), transparent 70%);
+  background: rgba(255, 255, 255, 0.018);
 }
 
 .deck__effects-heading {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 0.14em;
+  font-weight: 800;
+  letter-spacing: 0.15em;
 }
 
 .deck__effects-heading button {
-  padding: 2px 5px;
+  padding: 4px 6px;
   border: 0;
+  border-radius: 4px;
   background: transparent;
   color: var(--text-tertiary);
   font-size: 8px;
+  font-weight: 700;
   letter-spacing: 0.08em;
   cursor: pointer;
 }
 
 .deck__effects-heading button:hover {
+  background: var(--bg-elevated);
   color: var(--text-primary);
 }
 
 .deck__effects-buttons {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 5px;
+  gap: 6px;
 }
 
 .deck__effect-btn {
   min-width: 0;
-  height: 25px;
+  height: 30px;
   padding: 0 4px;
   border: 1px solid var(--border-color);
-  border-radius: var(--radius-sm);
-  background: var(--bg-tertiary);
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.035);
   color: var(--text-tertiary);
   font-size: 8px;
-  font-weight: 700;
+  font-weight: 750;
   letter-spacing: 0.04em;
   cursor: pointer;
-  transition: border-color 0.15s, color 0.15s, background 0.15s, box-shadow 0.15s;
+  transition: border-color var(--transition-fast), color var(--transition-fast), background var(--transition-fast);
 }
 
 .deck__effect-btn:hover {
@@ -676,20 +497,20 @@
 }
 
 .deck__effect-btn--active {
-  border-color: var(--_deck-color);
-  background: color-mix(in srgb, var(--_deck-color) 17%, var(--bg-tertiary));
+  border-color: color-mix(in srgb, var(--_deck-color) 62%, transparent);
+  background: color-mix(in srgb, var(--_deck-color) 16%, transparent);
   color: var(--_deck-color);
-  box-shadow: 0 0 10px color-mix(in srgb, var(--_deck-color) 18%, transparent);
 }
 
 .deck__effect-cutoff {
   display: grid;
   grid-template-columns: 1fr auto;
   align-items: center;
-  gap: 5px 10px;
+  gap: 8px 10px;
   color: var(--text-tertiary);
   font-size: 8px;
-  letter-spacing: 0.07em;
+  font-weight: 700;
+  letter-spacing: 0.08em;
 }
 
 .deck__effect-cutoff strong {
@@ -701,27 +522,32 @@
 
 .deck__effect-cutoff input {
   grid-column: 1 / -1;
-  width: 100%;
-  margin: 0;
   accent-color: var(--_deck-color);
 }
 
-/* ══════════════════════════════════════════════════════════════
-   8. LOAD TRACK BUTTON
-   ══════════════════════════════════════════════════════════════ */
-.deck__load-btn {
-  width: 100%;
-  height: 34px;
-  border: 1px solid var(--_deck-color);
-  border-radius: var(--radius-md, 8px);
-  background: transparent;
-  color: var(--_deck-color);
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.15s;
+.deck__error {
+  margin: 0;
+  color: #ff9ca6;
+  font-size: 11px;
+  line-height: 1.5;
 }
 
-.deck__load-btn:hover {
-  background: color-mix(in srgb, var(--_deck-color) 12%, transparent);
+@media (max-width: 700px) {
+  .deck {
+    min-height: 0;
+  }
+
+  .deck__waveform-container {
+    height: 142px;
+  }
+
+  .deck__jog {
+    width: 76px;
+    height: 76px;
+  }
+
+  .deck__jog-platter {
+    width: 61px;
+    height: 61px;
+  }
 }

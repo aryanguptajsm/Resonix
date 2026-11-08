@@ -115,11 +115,11 @@ export function detectBpm(audioBuffer) {
 async function decodeWaveform(file, duration) {
   const estimatedDecodedBytes = duration * 48_000 * 2 * Float32Array.BYTES_PER_ELEMENT;
   if (estimatedDecodedBytes > MAX_DECODED_BYTES) {
-    throw new Error('Track bahut lamba hai waveform analysis ke liye; playback aur seeking available hain.');
+    throw new Error('This track is too long for waveform analysis. Playback and seeking are still available.');
   }
 
   if (!window.AudioContext) {
-    throw new Error('Is browser mein local waveform analysis ke liye Web Audio API available nahi hai.');
+    throw new Error('Web Audio API is not available for local waveform analysis in this browser.');
   }
 
   const context = new window.AudioContext();
