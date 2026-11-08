@@ -38,6 +38,7 @@ export default function Deck({
   const waveformCanvasRef = useRef(null);
   const drawWaveformRef = useRef(() => {});
   const waveformRequestRef = useRef(0);
+  const loopRef = useRef(null);
   const jogDragRef = useRef(null);
   const jogRef = useRef(null);
   const jogWheelHandlerRef = useRef(() => {});
@@ -46,6 +47,8 @@ export default function Deck({
   const [duration, setDuration] = useState(0);
   const [pitch, setPitch] = useState(0);
   const [waveformPeaks, setWaveformPeaks] = useState([]);
+  const [loopBeats, setLoopBeats] = useState(4);
+  const [activeLoop, setActiveLoop] = useState(null);
   const [effects, setEffects] = useState({
     filter: false,
     echo: false,
@@ -60,6 +63,8 @@ export default function Deck({
   const [error, setError] = useState('');
 
   const label = `DECK ${deckId}`;
+  const loopBpm = Number(track?.bpm);
+  const canSetLoop = Boolean(track?.url && Number.isFinite(loopBpm) && loopBpm > 0 && duration);
   const visibleWindowSeconds = 30;
   const waveformStart = currentTime - visibleWindowSeconds / 2;
   const waveformEnd = waveformStart + visibleWindowSeconds;
@@ -77,6 +82,8 @@ export default function Deck({
     setWaveformPeaks([]);
     setWaveformError('');
     setWaveformStatus(track?.needsAccess ? 'unavailable' : track ? 'waiting' : 'idle');
+    loopRef.current = null;
+    setActiveLoop(null);
     setError('');
     if (track?.needsAccess) {
       setWaveformError('Choose Load A or Load B in the library to restore file access.');
@@ -188,6 +195,24 @@ export default function Deck({
         }
       }
 
+      if (activeLoop && activeLoop.end >= waveformStart && activeLoop.start <= waveformEnd) {
+        const loopStartX = ((activeLoop.start - waveformStart) / visibleDuration) * bounds.width;
+        const loopEndX = ((activeLoop.end - waveformStart) / visibleDuration) * bounds.width;
+        const visibleStartX = Math.max(0, loopStartX);
+        const visibleEndX = Math.min(bounds.width, loopEndX);
+        context.fillStyle = 'rgba(63, 224, 208, 0.12)';
+        context.fillRect(visibleStartX, 0, Math.max(0, visibleEndX - visibleStartX), waveformHeight);
+        context.strokeStyle = 'rgba(63, 224, 208, 0.8)';
+        context.lineWidth = 1;
+        [loopStartX, loopEndX].forEach((x) => {
+          if (x < 0 || x > bounds.width) return;
+          context.beginPath();
+          context.moveTo(x + 0.5, 0);
+          context.lineTo(x + 0.5, waveformHeight);
+          context.stroke();
+        });
+      }
+
       context.strokeStyle = 'rgba(255,255,255,0.12)';
       context.lineWidth = 1;
       context.beginPath();
@@ -242,7 +267,7 @@ export default function Deck({
     };
 
     drawWaveformRef.current();
-  }, [currentTime, duration, track?.bpm, waveformEnd, waveformPeaks, waveformStart]);
+  }, [activeLoop, currentTime, duration, track?.bpm, waveformEnd, waveformPeaks, waveformStart]);
 
   useEffect(() => {
     const canvas = waveformCanvasRef.current;
@@ -252,6 +277,27 @@ export default function Deck({
     observer.observe(canvas);
     return () => observer.disconnect();
   }, []);
+
+  const wrapBeatLoop = (audio) => {
+    const loop = loopRef.current;
+    if (!loop || audio.currentTime < loop.end) return null;
+
+    const graph = audioGraphRef.current;
+    if (graph) {
+      const now = graph.context.currentTime;
+      const gain = graph.loopGain.gain;
+      gain.cancelScheduledValues(now);
+      gain.setValueAtTime(gain.value, now);
+      gain.linearRampToValueAtTime(0, now + 0.003);
+      gain.setValueAtTime(0, now + 0.005);
+      gain.linearRampToValueAtTime(1, now + 0.015);
+    }
+
+    audio.currentTime = loop.start;
+    setCurrentTime(loop.start);
+    onPositionChange?.(loop.start);
+    return loop.start;
+  };
 
   useEffect(() => {
     const jog = jogRef.current;
@@ -280,7 +326,7 @@ export default function Deck({
       const audio = audioRef.current;
       if (!audio || audio.paused) return;
 
-      const time = audio.currentTime;
+      const time = wrapBeatLoop(audio) ?? audio.currentTime;
 
       if (timestamp - lastPaint >= 33) {
         setCurrentTime(time);
@@ -305,6 +351,7 @@ export default function Deck({
     const midFilter = context.createBiquadFilter();
     const highFilter = context.createBiquadFilter();
     const channelGain = context.createGain();
+    const loopGain = context.createGain();
     const fxFilter = context.createBiquadFilter();
     const delay = context.createDelay(2);
     const echoFeedback = context.createGain();
@@ -327,6 +374,7 @@ export default function Deck({
     highFilter.frequency.value = 4000;
     highFilter.gain.value = eq.high;
     channelGain.gain.value = outputGain;
+    loopGain.gain.value = 1;
     fxFilter.type = 'lowpass';
     fxFilter.frequency.value = effects.filter ? filterCutoff : context.sampleRate / 2;
     const bpm = Number(track?.bpm);
@@ -354,7 +402,8 @@ export default function Deck({
     lowFilter.connect(midFilter);
     midFilter.connect(highFilter);
     highFilter.connect(channelGain);
-    channelGain.connect(fxFilter);
+    channelGain.connect(loopGain);
+    loopGain.connect(fxFilter);
     fxFilter.connect(context.destination);
     fxFilter.connect(delay);
     delay.connect(echoFeedback);
@@ -378,6 +427,7 @@ export default function Deck({
       midFilter,
       highFilter,
       channelGain,
+      loopGain,
       fxFilter,
       delay,
       echoGain,
@@ -405,7 +455,9 @@ export default function Deck({
   };
 
   const handleTimeUpdate = () => {
-    const time = audioRef.current?.currentTime || 0;
+    const audio = audioRef.current;
+    if (!audio) return;
+    const time = wrapBeatLoop(audio) ?? audio.currentTime;
     setCurrentTime(time);
     onPositionChange?.(time);
   };
@@ -439,6 +491,59 @@ export default function Deck({
     onSyncFeedback?.(
       `Deck ${deckId} synced near beat ${sourceBeat + 1} at ${matchedBpm.toFixed(1)} BPM. Phase assumes the first beat is at track start; BPM is approximate.${limited}`,
     );
+  };
+
+  const handleLoopLengthChange = (beats) => {
+    if (activeLoop) {
+      const bpm = Number(track?.bpm);
+      const end = activeLoop.start + (beats * 60) / bpm;
+      if (end > duration) {
+        setError('This loop does not fit before the end of the track.');
+        return;
+      }
+
+      const nextLoop = { start: activeLoop.start, end };
+      loopRef.current = nextLoop;
+      setActiveLoop(nextLoop);
+    }
+
+    setLoopBeats(beats);
+    setError('');
+  };
+
+  const handleLoopToggle = () => {
+    if (activeLoop) {
+      loopRef.current = null;
+      setActiveLoop(null);
+      setError('');
+      return;
+    }
+
+    const bpm = Number(track?.bpm);
+    if (!Number.isFinite(bpm) || bpm <= 0 || !duration) {
+      setError('Analyze the track BPM before setting a beat loop.');
+      return;
+    }
+
+    const beatDuration = 60 / bpm;
+    const playhead = audioRef.current?.currentTime ?? currentTime;
+    const loopDuration = loopBeats * beatDuration;
+    const lastValidBeat = Math.floor((duration - loopDuration) / beatDuration);
+    const start = Math.max(
+      0,
+      Math.min(Math.round(playhead / beatDuration), lastValidBeat) * beatDuration,
+    );
+    const end = start + loopDuration;
+    if (end > duration) {
+      setError('This loop does not fit before the end of the track.');
+      return;
+    }
+
+    const nextLoop = { start, end };
+    loopRef.current = nextLoop;
+    setActiveLoop(nextLoop);
+    seekTo(start);
+    setError('');
   };
 
   const handleJogPointerDown = (event) => {
@@ -734,6 +839,39 @@ export default function Deck({
           aria-label={`Deck ${deckId} pitch`}
         />
       </div>
+
+      <section className={`deck__loops ${activeLoop ? 'deck__loops--active' : ''}`} aria-label={`Deck ${deckId} beat loop`}>
+        <div className="deck__loops-heading">
+          <span>BEAT LOOP</span>
+          <span className="deck__loops-status">{activeLoop ? `${loopBeats} BEAT LOOP ACTIVE` : 'LOOP OFF'}</span>
+        </div>
+        <div className="deck__loops-controls">
+          <div className="deck__loop-lengths">
+            {[0.5, 1, 2, 4, 8, 16].map((beats) => (
+              <button
+                key={beats}
+                type="button"
+                className={`deck__loop-length ${loopBeats === beats ? 'deck__loop-length--selected' : ''}`}
+                aria-label={`${beats === 0.5 ? 'Half' : beats} beat loop`}
+                aria-pressed={loopBeats === beats}
+                disabled={!canSetLoop}
+                onClick={() => handleLoopLengthChange(beats)}
+              >
+                {beats === 0.5 ? '1/2' : beats}
+              </button>
+            ))}
+          </div>
+          <button
+            type="button"
+            className={`deck__loop-toggle ${activeLoop ? 'deck__loop-toggle--active' : ''}`}
+            aria-pressed={Boolean(activeLoop)}
+            disabled={!canSetLoop}
+            onClick={handleLoopToggle}
+          >
+            {activeLoop ? 'EXIT LOOP' : 'LOOP'}
+          </button>
+        </div>
+      </section>
 
       <section className="deck__effects" aria-label={`Deck ${deckId} audio effects`}>
         <div className="deck__effects-heading">
