@@ -1,6 +1,6 @@
 # RESONIX
 
-RESONIX is a browser-based DJ studio. Imported audio files stay in your browser and are not uploaded to a server. The optional AI mix planner sends track names, artist, BPM/key when available, selected style, and your creative direction to Gemini; it never sends the audio files.
+RESONIX is a browser-based DJ studio. Imported audio files and the local DJ planner stay in your browser; no AI service or API key is required.
 
 ## Local music library
 
@@ -10,11 +10,7 @@ Browsers without persistent file access can still import and play tracks, but th
 
 ## Remix Studio
 
-Choose two tracks and a style to ask Gemini for a live DJ plan with a tempo strategy, transition, energy arc, and performance cues. The source audio remains local; the resulting plan helps you play and mix the pair on Decks A and B. It does not render a new audio file. Gemini/Lyria can generate new music from prompts, but it does not remix the two selected audio files together.
-
-The Remix AI endpoint requires a server-side Gemini API key. Never put the key in client-side code or a `VITE_` variable.
-
-For local development, copy `.env.example` to `.env` and set `GEMINI_API_KEY` to a rotated key. The default model is `gemini-3.8-flash`; set `GEMINI_MODEL` to another model available to your API key if needed. The Vite development server loads these values for the server-side Remix endpoint. For Vercel, add `GEMINI_API_KEY` (and optionally `GEMINI_MODEL`) under the project's Environment Variables, then redeploy. The server automatically retries temporary Gemini busy/rate-limit responses twice; if Gemini remains busy, wait briefly and choose **Try again**.
+Choose two tracks and a style to build a live DJ plan in your browser. The planner uses available BPM and key metadata plus practical phrase, EQ, and transition rules. When analysis data is missing or tempos do not safely match, it recommends beatmatching by ear instead of inventing values. The plan helps you mix the pair on Decks A and B; it does not render a new audio file.
 
 ## Requirements
 
@@ -35,13 +31,13 @@ npm run build
 npm run preview
 ```
 
-The production-ready frontend is written to `dist/`. Vercel also deploys the `api/remix-plan.js` serverless function. Deploying only `dist/` to a static host will keep the DJ studio working, but the Gemini mix planner requires a compatible server-side API endpoint.
+The production-ready frontend is written to `dist/`. The DJ studio and local mix planner work on static hosts; no separate API endpoint is required.
 
-Vercel is configured in `vercel.json` to run a clean `npm ci` install before building. Keep the Gemini key in Vercel's server-side environment settings; do not commit `.env` files.
+Vercel is configured in `vercel.json` to run a clean `npm ci` install before building.
 
 ## Deploy the static frontend to GitHub Pages
 
-The workflow in `.github/workflows/deploy.yml` builds and publishes the frontend whenever changes are pushed to `main`. GitHub Pages does not run the Gemini API function, so the AI mix planner will require a separately hosted backend.
+The workflow in `.github/workflows/deploy.yml` builds and publishes the frontend whenever changes are pushed to `main`. The local mix planner works on GitHub Pages without a separately hosted backend.
 
 1. In the repository settings, open **Pages**.
 2. Set the build and deployment source to **GitHub Actions**.

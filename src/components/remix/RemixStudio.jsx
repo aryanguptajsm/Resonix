@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { createLocalRemixPlan } from '../../audio/createLocalRemixPlan.js';
 import './RemixStudio.css';
 
 const REMIX_STYLES = [
@@ -25,9 +26,7 @@ function RemixStudio({ tracks, onLoadToDeck, onLoadPairToDecks, onImportTracks }
   const [prompt, setPrompt] = useState('');
   const [mixPlans, setMixPlans] = useState([]);
   const [activePlanId, setActivePlanId] = useState('');
-  const [isGenerating, setIsGenerating] = useState(false);
   const [message, setMessage] = useState('');
-  const [canRetry, setCanRetry] = useState(false);
 
   useEffect(() => {
     if (!tracks.some((track) => track.id === trackAId)) {
@@ -42,37 +41,20 @@ function RemixStudio({ tracks, onLoadToDeck, onLoadPairToDecks, onImportTracks }
 
   const trackA = tracks.find((track) => track.id === trackAId);
   const trackB = tracks.find((track) => track.id === trackBId);
-  const canGenerate = Boolean(trackA && trackB && trackA.id !== trackB.id && !isGenerating);
+  const canGenerate = Boolean(trackA && trackB && trackA.id !== trackB.id);
   const activePlan = mixPlans.find((item) => item.id === activePlanId);
 
-  const generateMixPlan = async () => {
+  const generateMixPlan = () => {
     if (!canGenerate) return;
 
-    setIsGenerating(true);
     setMessage('');
-    setCanRetry(false);
     try {
-      const response = await fetch('/api/remix-plan', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          trackA: trackDetails(trackA),
-          trackB: trackDetails(trackB),
-          style: selectedStyle,
-          prompt: prompt.trim(),
-        }),
+      const plan = createLocalRemixPlan({
+        trackA: trackDetails(trackA),
+        trackB: trackDetails(trackB),
+        style: selectedStyle,
+        prompt,
       });
-      let result;
-      try {
-        result = await response.json();
-      } catch {
-        throw new Error('The remix service returned an unreadable response.');
-      }
-      if (!response.ok) {
-        const requestError = new Error(result.error || `Could not create an AI mix plan (HTTP ${response.status}).`);
-        requestError.retryable = [429, 502, 503, 504].includes(response.status);
-        throw requestError;
-      }
 
       const style = REMIX_STYLES.find((item) => item.id === selectedStyle);
       const mix = {
@@ -83,17 +65,14 @@ function RemixStudio({ tracks, onLoadToDeck, onLoadPairToDecks, onImportTracks }
         trackBTitle: trackB.title,
         style: style.name,
         createdAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        ...result.plan,
+        ...plan,
       };
       setMixPlans((current) => [mix, ...current]);
       setActivePlanId(mix.id);
-      setMessage('AI mix plan ready. Your audio stays on this device.');
+      setMessage('Local DJ plan ready. No AI service or API key used.');
       setPrompt('');
     } catch (error) {
-      setMessage(error.message || 'Could not create an AI mix plan. Please try again.');
-      setCanRetry(Boolean(error.retryable) || error.name === 'TypeError');
-    } finally {
-      setIsGenerating(false);
+      setMessage(error.message || 'Could not build a local DJ plan.');
     }
   };
 
@@ -114,14 +93,14 @@ function RemixStudio({ tracks, onLoadToDeck, onLoadPairToDecks, onImportTracks }
         <div className="remix-stage__lights" aria-hidden="true" />
         <div className="remix-stage__topline">
           <span className="remix-stage__live"><span /> REMIX STAGE</span>
-          <span className="remix-stage__edition">RESONIX / AI DJ LAB</span>
+          <span className="remix-stage__edition">RESONIX / LIVE DJ LAB</span>
         </div>
         <div className="remix-stage__content">
           <div className="remix-stage__copy">
             <p className="remix-stage__eyebrow">TWO TRACKS. ONE CROWD.</p>
             <h1 id="remix-title">Make the room<br /><span>move.</span></h1>
             <p className="remix-stage__description">
-              Let Gemini map the handoff. You bring both tracks to the decks and take the room to the drop.
+              Build a practical live handoff from your own tracks. Your audio stays on this device, with no AI service or API key.
             </p>
             <a className="remix-stage__cta" href="#remix-create">
               Build your live mix <span aria-hidden="true">↗</span>
@@ -139,7 +118,7 @@ function RemixStudio({ tracks, onLoadToDeck, onLoadPairToDecks, onImportTracks }
         </div>
         <div className="remix-stage__footer">
           <span>01 — CHOOSE TWO TRACKS</span>
-          <span>02 — GET YOUR AI CUES</span>
+          <span>02 — MAP YOUR HANDOFF</span>
           <span>03 — PLAY IT LIVE</span>
         </div>
       </div>
@@ -159,7 +138,7 @@ function RemixStudio({ tracks, onLoadToDeck, onLoadPairToDecks, onImportTracks }
               <span className="remix-create__number">01</span>
               <div>
                 <h3>Build your track pair</h3>
-                <p>AI uses track details to plan a concert-ready transition.</p>
+                <p>Local tempo and key guidance, phrase cues, and a live transition plan.</p>
               </div>
             </div>
 
@@ -242,30 +221,19 @@ function RemixStudio({ tracks, onLoadToDeck, onLoadPairToDecks, onImportTracks }
             <span className="remix-prompt-count">{prompt.length}/500</span>
 
             <button className="remix-generate" type="submit" disabled={!canGenerate}>
-              <span aria-hidden="true">{isGenerating ? '◌' : '✦'}</span>
-              {isGenerating ? 'Gemini is mapping your set…' : 'Generate AI mix plan'}
-              {!isGenerating && <span aria-hidden="true">→</span>}
+              <span aria-hidden="true">✦</span>
+              Build local DJ plan
+              <span aria-hidden="true">→</span>
             </button>
             <p className="remix-disclaimer">
-              Gemini receives track names, artist, BPM/key if known, style, and your direction—not audio files.
-              It creates DJ cues, not a rendered song.
+              The planner runs in your browser and uses only available track details and DJ rules. It does not upload audio or render a new song.
             </p>
 
             {message && (
               <div className="remix-message-row">
-                <p className={`remix-message ${message.startsWith('AI mix plan') ? 'remix-message--success' : ''}`} role="status">
+                <p className={`remix-message ${message.startsWith('Local DJ plan') ? 'remix-message--success' : ''}`} role="status">
                   {message}
                 </p>
-                {canRetry && (
-                  <button
-                    className="remix-retry"
-                    type="button"
-                    disabled={isGenerating}
-                    onClick={generateMixPlan}
-                  >
-                    {isGenerating ? 'Retrying…' : 'Try again'}
-                  </button>
-                )}
               </div>
             )}
           </form>
@@ -273,7 +241,7 @@ function RemixStudio({ tracks, onLoadToDeck, onLoadPairToDecks, onImportTracks }
           <aside className="remix-shelf" aria-labelledby="remix-shelf-title">
             <div className="remix-shelf__heading">
               <div>
-                <span className="remix-eyebrow">AI SET DIRECTION</span>
+                <span className="remix-eyebrow">LOCAL SET DIRECTION</span>
                 <h3 id="remix-shelf-title">Your concert plan</h3>
               </div>
               <span className="remix-shelf__count">{String(mixPlans.length).padStart(2, '0')}</span>
@@ -297,10 +265,22 @@ function RemixStudio({ tracks, onLoadToDeck, onLoadPairToDecks, onImportTracks }
                   <span className="remix-plan__arc-label">THE ENERGY ARC</span>
                   <p>{activePlan.energyArc || activePlan.bpmStrategy}</p>
                 </div>
+                {activePlan.keyStrategy && (
+                  <div className="remix-plan__transition">
+                    <span className="remix-plan__arc-label">HARMONIC GUIDE</span>
+                    <p>{activePlan.keyStrategy}</p>
+                  </div>
+                )}
                 <div className="remix-plan__transition">
                   <span className="remix-plan__arc-label">THE HANDOFF</span>
                   <p>{activePlan.transition}</p>
                 </div>
+                {activePlan.creativeDirection && (
+                  <div className="remix-plan__transition">
+                    <span className="remix-plan__arc-label">STAGE NOTE</span>
+                    <p>{activePlan.creativeDirection}</p>
+                  </div>
+                )}
                 <ol className="remix-plan__cues">
                   {activePlan.performanceCues.map((cue, index) => (
                     <li key={`${activePlan.id}-${index}`}><span>{String(index + 1).padStart(2, '0')}</span>{cue}</li>
@@ -319,7 +299,7 @@ function RemixStudio({ tracks, onLoadToDeck, onLoadPairToDecks, onImportTracks }
               <div className="remix-shelf__empty">
                 <div className="remix-shelf__empty-icon" aria-hidden="true">♫</div>
                 <strong>Your next big moment starts here.</strong>
-                <p>Choose two tracks and Gemini will map the tempo strategy, handoff, and live performance cues.</p>
+                <p>Choose two tracks to map the tempo, harmonic fit, handoff, and live performance cues.</p>
                 <div className="remix-shelf__sample" aria-hidden="true">
                   <span>✦</span><span>✦</span><span>✦</span>
                 </div>
@@ -344,7 +324,7 @@ function RemixStudio({ tracks, onLoadToDeck, onLoadPairToDecks, onImportTracks }
 
             <div className="remix-shelf__note">
               <span aria-hidden="true">✦</span>
-              <p>AI plans the moment. You mix both tracks live with the decks, EQ, effects, and crossfader.</p>
+              <p>Use the plan with both decks, EQ, effects, and crossfader. Confirm every cue by ear before the handoff.</p>
             </div>
           </aside>
         </div>
