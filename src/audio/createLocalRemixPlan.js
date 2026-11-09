@@ -80,9 +80,7 @@ function toCamelot(value) {
   const isMinor = /(?:MINOR|MIN|M)\s*$/i.test(key);
   const root = key
     .replace(/(?:MINOR|MIN|MAJOR|MAJ|M)\s*$/i, '')
-    .replace(/\s+/g, '')
-    .replace(/♯/g, '#')
-    .replace(/♭/g, 'B');
+    .replace(/\s+/g, '');
   const code = KEY_TO_CAMELOT[`${root}${isMinor ? 'M' : ''}`];
   const mappedMatch = code?.match(/^(1[0-2]|[1-9])([AB])$/);
   return mappedMatch ? { number: Number(mappedMatch[1]), mode: mappedMatch[2] } : null;
@@ -131,7 +129,7 @@ export function createLocalRemixPlan({ trackA, trackB, style, prompt = '' }) {
   }
 
   return {
-    mixTitle: `${stylePlan.name}: ${trackA.title} → ${trackB.title}`,
+    mixTitle: `${stylePlan.name}: ${trackA.title} -> ${trackB.title}`,
     bpmStrategy,
     keyStrategy: describeKeyRelationship(trackA.key, trackB.key),
     transition: transitionBars === 8 && stylePlan.bars !== 8

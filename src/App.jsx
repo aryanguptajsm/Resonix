@@ -37,12 +37,23 @@ function App() {
   });
   const [deckPitch, setDeckPitch] = useState({ A: 0, B: 0 });
   const [deckTimes, setDeckTimes] = useState({ A: 0, B: 0 });
+  const [deckAutomation, setDeckAutomation] = useState({ A: null, B: null });
+  const [autoMix, setAutoMix] = useState(null);
   const [crossfader, setCrossfader] = useState(0);
   const [activePage, setActivePage] = useState('studio');
   const [notice, setNotice] = useState('');
   const [libraryReady, setLibraryReady] = useState(false);
   const objectUrls = useRef(new Set());
   const appRef = useRef(null);
+  const automationSequence = useRef(0);
+
+  const sendDeckCommand = (deckId, action, trackId, runId = 'manual') => {
+    automationSequence.current += 1;
+    setDeckAutomation((current) => ({
+      ...current,
+      [deckId]: { id: `${runId}-${deckId}-${automationSequence.current}`, action, trackId },
+    }));
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -134,6 +145,83 @@ function App() {
     return rightMix;
   };
 
+  const handleAutoMixPair = async (trackA, trackB, plan) => {
+    setAutoMix(null);
+    const [loadedA, loadedB] = await Promise.all([
+      handleLoadToDeck(trackA, 'A'),
+      handleLoadToDeck(trackB, 'B'),
+    ]);
+
+    if (!loadedA || !loadedB) {
+      setNotice('Both tracks must be available before Auto Mix can start.');
+      return;
+    }
+
+    const bpm = Number(trackA.bpm);
+    const transitionBars = [8, 16, 32].includes(plan?.transitionBars) ? plan.transitionBars : 16;
+    const transitionSeconds = Number.isFinite(bpm) && bpm > 0
+      ? (transitionBars * 4 * 60) / bpm
+      : 12;
+    const runId = crypto.randomUUID();
+    setCrossfader(-1);
+    setAutoMix({
+      id: runId,
+      phase: 'intro',
+      trackAId: trackA.id,
+      trackBId: trackB.id,
+      transitionSeconds,
+    });
+    sendDeckCommand('A', 'restart-play', trackA.id, runId);
+    setNotice(`Auto Mix is playing ${trackA.title}. ${trackB.title} will blend in near the end.`);
+  };
+
+  const handleStopAutoMix = () => {
+    if (deckTracks.A) sendDeckCommand('A', 'stop', deckTracks.A.id);
+    if (deckTracks.B) sendDeckCommand('B', 'stop', deckTracks.B.id);
+    setAutoMix(null);
+    setCrossfader(0);
+    setNotice('Auto Mix stopped.');
+  };
+
+  useEffect(() => {
+    if (autoMix?.phase !== 'intro' || deckTracks.A?.id !== autoMix.trackAId) return;
+    const duration = Number(deckTracks.A.duration);
+    if (!Number.isFinite(duration) || duration <= 0) return;
+
+    const blendDuration = Math.min(autoMix.transitionSeconds, duration * 0.4);
+    const blendStart = Math.max(0, duration - blendDuration);
+    if (deckTimes.A < blendStart) return;
+
+    setAutoMix((current) => (
+      current?.id === autoMix.id && current.phase === 'intro'
+        ? { ...current, phase: 'blending', blendDuration }
+        : current
+    ));
+    const canSync = Number(deckTracks.A.bpm) > 0 && Number(deckTracks.B?.bpm) > 0;
+    sendDeckCommand('B', canSync ? 'sync-play' : 'restart-play', deckTracks.B.id, autoMix.id);
+  }, [autoMix, deckTimes.A, deckTracks.A?.duration, deckTracks.A?.id, deckTracks.A?.bpm, deckTracks.B?.id, deckTracks.B?.bpm]);
+
+  useEffect(() => {
+    if (autoMix?.phase !== 'blending') return undefined;
+
+    const startedAt = Date.now();
+    const durationMs = Math.max(1000, autoMix.blendDuration * 1000);
+    const interval = window.setInterval(() => {
+      const progress = Math.min(1, (Date.now() - startedAt) / durationMs);
+      setCrossfader(-1 + progress * 2);
+      if (progress < 1) return;
+
+      window.clearInterval(interval);
+      sendDeckCommand('A', 'stop', autoMix.trackAId, autoMix.id);
+      setAutoMix((current) => (
+        current?.id === autoMix.id ? { ...current, phase: 'finished' } : current
+      ));
+      setNotice(`Auto Mix complete. ${deckTracks.B?.title || 'Track B'} has the mix.`);
+    }, 60);
+
+    return () => window.clearInterval(interval);
+  }, [autoMix?.id, autoMix?.phase, autoMix?.blendDuration]);
+
   const handleImport = (files, handles = []) => {
     const acceptedFiles = files.map((file, index) => ({ file, handle: handles[index] || null })).filter(({ file }) => (
       file.type.startsWith('audio/')
@@ -203,23 +291,15 @@ function App() {
     return true;
   };
 
-  const handleLoadPairToDecks = async (trackA, trackB) => {
-    const [loadedA, loadedB] = await Promise.all([
-      handleLoadToDeck(trackA, 'A'),
-      handleLoadToDeck(trackB, 'B'),
-    ]);
-
-    if (loadedA && loadedB) {
-      setNotice(`${trackA.title} and ${trackB.title} loaded to Decks A and B. Start both decks and follow the AI cues.`);
-    } else if (loadedA || loadedB) {
-      setNotice('Only one track could be loaded. Restore file access and try loading the pair again.');
-    }
-  };
-
   const handleDurationChange = (trackId, duration) => {
-    setTracks((currentTracks) => currentTracks.map((track) => (
-      track.id === trackId ? { ...track, duration } : track
-    )));
+    const updateDuration = (track) => (
+      track?.id === trackId ? { ...track, duration } : track
+    );
+    setTracks((currentTracks) => currentTracks.map(updateDuration));
+    setDeckTracks((currentDecks) => ({
+      A: updateDuration(currentDecks.A),
+      B: updateDuration(currentDecks.B),
+    }));
   };
 
   const handleBpmChange = (trackId, bpm, confidence) => {
@@ -277,6 +357,7 @@ function App() {
               syncBpm={deckTracks.B?.bpm}
               syncTime={deckTimes.B}
               syncPitch={deckPitch.B}
+              automationCommand={deckAutomation.A}
               onDurationChange={handleDurationChange}
               onBpmChange={handleBpmChange}
               onPositionChange={(time) => setDeckTimes((current) => ({ ...current, A: time }))}
@@ -299,6 +380,7 @@ function App() {
               syncBpm={deckTracks.A?.bpm}
               syncTime={deckTimes.A}
               syncPitch={deckPitch.A}
+              automationCommand={deckAutomation.B}
               onDurationChange={handleDurationChange}
               onBpmChange={handleBpmChange}
               onPositionChange={(time) => setDeckTimes((current) => ({ ...current, B: time }))}
@@ -338,7 +420,9 @@ function App() {
           <RemixStudio
             tracks={tracks}
             onLoadToDeck={handleLoadToDeck}
-            onLoadPairToDecks={handleLoadPairToDecks}
+            onAutoMixPair={handleAutoMixPair}
+            onStopAutoMix={handleStopAutoMix}
+            autoMixState={autoMix}
             onImportTracks={() => {
               handleNavigate('studio', 'library');
               setNotice('Import a track from your library to start a remix.');

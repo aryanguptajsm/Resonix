@@ -19,11 +19,17 @@ function trackDetails(track) {
   };
 }
 
-function RemixStudio({ tracks, onLoadToDeck, onLoadPairToDecks, onImportTracks }) {
+function RemixStudio({
+  tracks,
+  onLoadToDeck,
+  onAutoMixPair,
+  onStopAutoMix,
+  autoMixState,
+  onImportTracks,
+}) {
   const [trackAId, setTrackAId] = useState('');
   const [trackBId, setTrackBId] = useState('');
-  const [selectedStyle, setSelectedStyle] = useState(REMIX_STYLES[0].id);
-  const [prompt, setPrompt] = useState('');
+  const selectedStyle = REMIX_STYLES[0].id;
   const [mixPlans, setMixPlans] = useState([]);
   const [activePlanId, setActivePlanId] = useState('');
   const [message, setMessage] = useState('');
@@ -43,6 +49,7 @@ function RemixStudio({ tracks, onLoadToDeck, onLoadPairToDecks, onImportTracks }
   const trackB = tracks.find((track) => track.id === trackBId);
   const canGenerate = Boolean(trackA && trackB && trackA.id !== trackB.id);
   const activePlan = mixPlans.find((item) => item.id === activePlanId);
+  const isAutoMixRunning = ['intro', 'blending'].includes(autoMixState?.phase);
 
   const generateMixPlan = () => {
     if (!canGenerate) return;
@@ -53,7 +60,6 @@ function RemixStudio({ tracks, onLoadToDeck, onLoadPairToDecks, onImportTracks }
         trackA: trackDetails(trackA),
         trackB: trackDetails(trackB),
         style: selectedStyle,
-        prompt,
       });
 
       const style = REMIX_STYLES.find((item) => item.id === selectedStyle);
@@ -69,8 +75,8 @@ function RemixStudio({ tracks, onLoadToDeck, onLoadPairToDecks, onImportTracks }
       };
       setMixPlans((current) => [mix, ...current]);
       setActivePlanId(mix.id);
-      setMessage('Local DJ plan ready. No AI service or API key used.');
-      setPrompt('');
+      setMessage('Auto Mix started. Track B will blend in near the end of Track A.');
+      onAutoMixPair(trackA, trackB, plan);
     } catch (error) {
       setMessage(error.message || 'Could not build a local DJ plan.');
     }
@@ -78,13 +84,18 @@ function RemixStudio({ tracks, onLoadToDeck, onLoadPairToDecks, onImportTracks }
 
   const handleGenerateSubmit = (event) => {
     event.preventDefault();
+    if (isAutoMixRunning) {
+      onStopAutoMix();
+      setMessage('Auto Mix stopped.');
+      return;
+    }
     generateMixPlan();
   };
 
-  const loadPair = (firstId, secondId) => {
+  const runPair = (firstId, secondId, plan) => {
     const first = tracks.find((track) => track.id === firstId);
     const second = tracks.find((track) => track.id === secondId);
-    if (first && second) onLoadPairToDecks(first, second);
+    if (first && second) onAutoMixPair(first, second, plan);
   };
 
   return (
@@ -100,10 +111,10 @@ function RemixStudio({ tracks, onLoadToDeck, onLoadPairToDecks, onImportTracks }
             <p className="remix-stage__eyebrow">TWO TRACKS. ONE CROWD.</p>
             <h1 id="remix-title">Make the room<br /><span>move.</span></h1>
             <p className="remix-stage__description">
-              Build a practical live handoff from your own tracks. Your audio stays on this device, with no AI service or API key.
+              Choose two songs, press Auto Mix, and Resonix starts the decks and handles the handoff. No API key needed.
             </p>
             <a className="remix-stage__cta" href="#remix-create">
-              Build your live mix <span aria-hidden="true">↗</span>
+              Choose your two songs <span aria-hidden="true">↗</span>
             </a>
           </div>
           <div className="remix-stage__visual" aria-hidden="true">
@@ -118,8 +129,8 @@ function RemixStudio({ tracks, onLoadToDeck, onLoadPairToDecks, onImportTracks }
         </div>
         <div className="remix-stage__footer">
           <span>01 — CHOOSE TWO TRACKS</span>
-          <span>02 — MAP YOUR HANDOFF</span>
-          <span>03 — PLAY IT LIVE</span>
+          <span>02 — AUTO BLEND</span>
+          <span>03 — LET IT PLAY</span>
         </div>
       </div>
 
@@ -137,8 +148,8 @@ function RemixStudio({ tracks, onLoadToDeck, onLoadPairToDecks, onImportTracks }
             <div className="remix-create__heading">
               <span className="remix-create__number">01</span>
               <div>
-                <h3>Build your track pair</h3>
-                <p>Local tempo and key guidance, phrase cues, and a live transition plan.</p>
+                <h3>Choose two songs</h3>
+                <p>Resonix starts the first track and blends in the second automatically.</p>
               </div>
             </div>
 
@@ -146,7 +157,7 @@ function RemixStudio({ tracks, onLoadToDeck, onLoadPairToDecks, onImportTracks }
               <div className="remix-track-pair">
                 <label className="remix-track-slot remix-track-slot--a" htmlFor="remix-track-a">
                   <span className="remix-track-slot__deck">DECK A</span>
-                  <span className="remix-field-label">FIRST TRACK</span>
+                  <span className="remix-field-label">FIRST SONG</span>
                   <select
                     id="remix-track-a"
                     className="remix-select"
@@ -162,7 +173,7 @@ function RemixStudio({ tracks, onLoadToDeck, onLoadPairToDecks, onImportTracks }
                 <span className="remix-track-pair__plus" aria-hidden="true">＋</span>
                 <label className="remix-track-slot remix-track-slot--b" htmlFor="remix-track-b">
                   <span className="remix-track-slot__deck">DECK B</span>
-                  <span className="remix-field-label">BRING IN TRACK</span>
+                  <span className="remix-field-label">NEXT SONG</span>
                   <select
                     id="remix-track-b"
                     className="remix-select"
@@ -189,44 +200,13 @@ function RemixStudio({ tracks, onLoadToDeck, onLoadPairToDecks, onImportTracks }
               </button>
             )}
 
-            <span className="remix-field-label">PICK THE ROOM'S ENERGY</span>
-            <div className="remix-style-grid">
-              {REMIX_STYLES.map((style) => (
-                <button
-                  key={style.id}
-                  className={`remix-style remix-style--${style.color} ${selectedStyle === style.id ? 'remix-style--selected' : ''}`}
-                  type="button"
-                  aria-pressed={selectedStyle === style.id}
-                  onClick={() => setSelectedStyle(style.id)}
-                >
-                  <span className="remix-style__icon" aria-hidden="true">{style.id === 'festival' ? '✳' : style.id === 'techno' ? '◈' : '✦'}</span>
-                  <strong>{style.name}</strong>
-                  <small>{style.detail}</small>
-                </button>
-              ))}
-            </div>
-
-            <label className="remix-field-label" htmlFor="remix-prompt">
-              YOUR CREATIVE DIRECTION <span>OPTIONAL</span>
-            </label>
-            <textarea
-              id="remix-prompt"
-              className="remix-prompt"
-              value={prompt}
-              maxLength={500}
-              onChange={(event) => setPrompt(event.target.value)}
-              placeholder="e.g. Hold the vocal, build tension for 16 bars, then hit a euphoric drop..."
-              rows={3}
-            />
-            <span className="remix-prompt-count">{prompt.length}/500</span>
-
             <button className="remix-generate" type="submit" disabled={!canGenerate}>
               <span aria-hidden="true">✦</span>
-              Build local DJ plan
-              <span aria-hidden="true">→</span>
+              {isAutoMixRunning ? 'Stop Auto Mix' : 'Auto mix & play'}
+              <span aria-hidden="true">{isAutoMixRunning ? '■' : '→'}</span>
             </button>
             <p className="remix-disclaimer">
-              The planner runs in your browser and uses only available track details and DJ rules. It does not upload audio or render a new song.
+              Runs locally. The blend starts near the end of Track A; imported audio stays on your device.
             </p>
 
             {message && (
@@ -289,10 +269,10 @@ function RemixStudio({ tracks, onLoadToDeck, onLoadPairToDecks, onImportTracks }
                 <button
                   className="remix-load-pair"
                   type="button"
-                  onClick={() => loadPair(activePlan.trackAId, activePlan.trackBId)}
+                  onClick={() => runPair(activePlan.trackAId, activePlan.trackBId, activePlan)}
                   disabled={!tracks.some((track) => track.id === activePlan.trackAId) || !tracks.some((track) => track.id === activePlan.trackBId)}
                 >
-                  Load both tracks to Decks A + B <span aria-hidden="true">↗</span>
+                  Run this mix again <span aria-hidden="true">↗</span>
                 </button>
               </article>
             ) : (

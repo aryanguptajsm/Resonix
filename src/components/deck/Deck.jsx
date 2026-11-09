@@ -24,6 +24,7 @@ export default function Deck({
   syncBpm,
   syncTime = 0,
   syncPitch = 0,
+  automationCommand = null,
   onDurationChange,
   onBpmChange,
   onEqChange,
@@ -35,6 +36,7 @@ export default function Deck({
 }) {
   const audioRef = useRef(null);
   const audioGraphRef = useRef(null);
+  const automationCommandRef = useRef(null);
   const waveformCanvasRef = useRef(null);
   const drawWaveformRef = useRef(() => {});
   const waveformRequestRef = useRef(0);
@@ -613,6 +615,28 @@ export default function Deck({
     setIsPlaying(false);
     onPlayingChange?.(false);
   };
+
+  useEffect(() => {
+    if (
+      !automationCommand?.id
+      || automationCommandRef.current === automationCommand.id
+      || automationCommand.trackId !== track?.id
+      || !track?.url
+    ) return;
+
+    automationCommandRef.current = automationCommand.id;
+    if (automationCommand.action === 'stop') {
+      handleStop();
+      return;
+    }
+    if (automationCommand.action === 'restart-play' && audioRef.current) {
+      audioRef.current.currentTime = 0;
+      setCurrentTime(0);
+      onPositionChange?.(0);
+    }
+    if (automationCommand.action === 'sync-play') handleSync();
+    void handlePlay();
+  }, [automationCommand, track?.id, track?.url]);
 
   const handleMetadata = () => {
     if (!audioRef.current || !track) return;
