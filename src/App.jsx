@@ -183,7 +183,7 @@ function App() {
         const permission = await track.handle.requestPermission({ mode: 'read' });
         if (permission !== 'granted') {
           setNotice(`Access to ${track.title} was not granted. Choose Load again to retry.`);
-          return;
+          return false;
         }
         const file = await track.handle.getFile();
         const url = URL.createObjectURL(file);
@@ -194,12 +194,26 @@ function App() {
         )));
       } catch (accessError) {
         setNotice(`Could not reopen ${track.title}: ${accessError.message}`);
-        return;
+        return false;
       }
     }
 
     setDeckTracks((current) => ({ ...current, [deckId]: readyTrack }));
     setNotice(`${track.title} loaded to Deck ${deckId}.`);
+    return true;
+  };
+
+  const handleLoadPairToDecks = async (trackA, trackB) => {
+    const [loadedA, loadedB] = await Promise.all([
+      handleLoadToDeck(trackA, 'A'),
+      handleLoadToDeck(trackB, 'B'),
+    ]);
+
+    if (loadedA && loadedB) {
+      setNotice(`${trackA.title} and ${trackB.title} loaded to Decks A and B. Start both decks and follow the AI cues.`);
+    } else if (loadedA || loadedB) {
+      setNotice('Only one track could be loaded. Restore file access and try loading the pair again.');
+    }
   };
 
   const handleDurationChange = (trackId, duration) => {
@@ -324,6 +338,7 @@ function App() {
           <RemixStudio
             tracks={tracks}
             onLoadToDeck={handleLoadToDeck}
+            onLoadPairToDecks={handleLoadPairToDecks}
             onImportTracks={() => {
               handleNavigate('studio', 'library');
               setNotice('Import a track from your library to start a remix.');
