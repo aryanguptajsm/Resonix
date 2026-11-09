@@ -4,6 +4,7 @@ import Deck from './components/deck/Deck.jsx';
 import TopBar from './components/layout/TopBar.jsx';
 import Library from './components/library/Library.jsx';
 import Mixer from './components/mixer/Mixer.jsx';
+import RemixStudio from './components/remix/RemixStudio.jsx';
 import { getSavedLibraryTracks, saveLibraryTrack } from './audio/libraryStore.js';
 
 const DEVELOPMENT_STAGES = [
@@ -320,6 +321,14 @@ function App() {
               onImportError={(error) => setNotice(`Could not import audio: ${error.message}`)}
             />
           </div>
+          <RemixStudio
+            tracks={tracks}
+            onLoadToDeck={handleLoadToDeck}
+            onImportTracks={() => {
+              handleNavigate('studio', 'library');
+              setNotice('Import a track from your library to start a remix.');
+            }}
+          />
         </>
       ) : (
         <main className="roadmap-page" id="roadmap">

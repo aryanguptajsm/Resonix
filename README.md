@@ -8,6 +8,10 @@ In browsers that support the File System Access API, importing tracks saves brow
 
 Browsers without persistent file access can still import and play tracks, but those tracks must be imported again after restarting the app.
 
+## Remix Studio
+
+The Remix section lets you choose a local track, select a remix style, and save a creative brief for the current session. It does not generate or export audio yet; connecting an AI audio-generation service is a separate integration.
+
 ## Requirements
 
 - Node.js 22.12 or newer

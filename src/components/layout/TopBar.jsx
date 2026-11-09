@@ -39,6 +39,13 @@ function TopBar({ status, activePage, onNavigate }) {
             Library
           </button>
           <button
+            className="topbar__nav-link"
+            type="button"
+            onClick={() => onNavigate?.('studio', 'remix')}
+          >
+            Remix
+          </button>
+          <button
             className={`topbar__nav-link ${activePage === 'roadmap' ? 'topbar__nav-link--active' : ''}`}
             type="button"
             aria-current={activePage === 'roadmap' ? 'page' : undefined}
