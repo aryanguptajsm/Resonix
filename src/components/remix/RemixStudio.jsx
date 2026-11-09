@@ -27,6 +27,7 @@ function RemixStudio({ tracks, onLoadToDeck, onLoadPairToDecks, onImportTracks }
   const [activePlanId, setActivePlanId] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [message, setMessage] = useState('');
+  const [canRetry, setCanRetry] = useState(false);
 
   useEffect(() => {
     if (!tracks.some((track) => track.id === trackAId)) {
@@ -44,12 +45,12 @@ function RemixStudio({ tracks, onLoadToDeck, onLoadPairToDecks, onImportTracks }
   const canGenerate = Boolean(trackA && trackB && trackA.id !== trackB.id && !isGenerating);
   const activePlan = mixPlans.find((item) => item.id === activePlanId);
 
-  const generateMixPlan = async (event) => {
-    event.preventDefault();
+  const generateMixPlan = async () => {
     if (!canGenerate) return;
 
     setIsGenerating(true);
     setMessage('');
+    setCanRetry(false);
     try {
       const response = await fetch('/api/remix-plan', {
         method: 'POST',
@@ -68,7 +69,9 @@ function RemixStudio({ tracks, onLoadToDeck, onLoadPairToDecks, onImportTracks }
         throw new Error('The remix service returned an unreadable response.');
       }
       if (!response.ok) {
-        throw new Error(result.error || `Could not create an AI mix plan (HTTP ${response.status}).`);
+        const requestError = new Error(result.error || `Could not create an AI mix plan (HTTP ${response.status}).`);
+        requestError.retryable = [429, 502, 503, 504].includes(response.status);
+        throw requestError;
       }
 
       const style = REMIX_STYLES.find((item) => item.id === selectedStyle);
@@ -88,9 +91,15 @@ function RemixStudio({ tracks, onLoadToDeck, onLoadPairToDecks, onImportTracks }
       setPrompt('');
     } catch (error) {
       setMessage(error.message || 'Could not create an AI mix plan. Please try again.');
+      setCanRetry(Boolean(error.retryable) || error.name === 'TypeError');
     } finally {
       setIsGenerating(false);
     }
+  };
+
+  const handleGenerateSubmit = (event) => {
+    event.preventDefault();
+    generateMixPlan();
   };
 
   const loadPair = (firstId, secondId) => {
@@ -145,7 +154,7 @@ function RemixStudio({ tracks, onLoadToDeck, onLoadPairToDecks, onImportTracks }
         </div>
 
         <div className="remix-layout">
-          <form className="remix-create" id="remix-create" onSubmit={generateMixPlan}>
+          <form className="remix-create" id="remix-create" onSubmit={handleGenerateSubmit}>
             <div className="remix-create__heading">
               <span className="remix-create__number">01</span>
               <div>
@@ -243,9 +252,21 @@ function RemixStudio({ tracks, onLoadToDeck, onLoadPairToDecks, onImportTracks }
             </p>
 
             {message && (
-              <p className={`remix-message ${message.startsWith('AI mix plan') ? 'remix-message--success' : ''}`} role="status">
-                {message}
-              </p>
+              <div className="remix-message-row">
+                <p className={`remix-message ${message.startsWith('AI mix plan') ? 'remix-message--success' : ''}`} role="status">
+                  {message}
+                </p>
+                {canRetry && (
+                  <button
+                    className="remix-retry"
+                    type="button"
+                    disabled={isGenerating}
+                    onClick={generateMixPlan}
+                  >
+                    {isGenerating ? 'Retrying…' : 'Try again'}
+                  </button>
+                )}
+              </div>
             )}
           </form>
 

@@ -14,7 +14,7 @@ Choose two tracks and a style to ask Gemini for a live DJ plan with a tempo stra
 
 The Remix AI endpoint requires a server-side Gemini API key. Never put the key in client-side code or a `VITE_` variable.
 
-For local development, copy `.env.example` to `.env` and set `GEMINI_API_KEY` to a rotated key. The Vite development server loads it for the server-side Remix endpoint. For Vercel, add `GEMINI_API_KEY` under the project's Environment Variables and redeploy.
+For local development, copy `.env.example` to `.env` and set `GEMINI_API_KEY` to a rotated key. The default model is `gemini-3.8-flash`; set `GEMINI_MODEL` to another model available to your API key if needed. The Vite development server loads these values for the server-side Remix endpoint. For Vercel, add `GEMINI_API_KEY` (and optionally `GEMINI_MODEL`) under the project's Environment Variables, then redeploy. The server automatically retries temporary Gemini busy/rate-limit responses twice; if Gemini remains busy, wait briefly and choose **Try again**.
 
 ## Requirements
 

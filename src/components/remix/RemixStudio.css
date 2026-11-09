@@ -941,6 +941,39 @@
   color: #8ce2b7;
 }
 
+.remix-message-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.remix-message-row .remix-message {
+  flex: 1;
+}
+
+.remix-retry {
+  flex: 0 0 auto;
+  margin-top: 7px;
+  padding: 5px 9px;
+  border: 1px solid rgba(177, 138, 255, 0.3);
+  border-radius: 6px;
+  background: rgba(156, 104, 255, 0.1);
+  color: #d3baff;
+  font-size: 9px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.remix-retry:hover:not(:disabled) {
+  background: rgba(156, 104, 255, 0.2);
+}
+
+.remix-retry:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
 .remix-shelf {
   gap: 15px;
 }
