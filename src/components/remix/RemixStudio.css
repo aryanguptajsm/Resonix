@@ -25,7 +25,55 @@
   height: 390px;
   background: linear-gradient(180deg, rgba(160, 62, 255, 0.12), transparent 72%);
   filter: blur(30px);
+  opacity: 0.6;
   pointer-events: none;
+  transition: opacity 400ms ease;
+}
+
+.remix-stage[data-phase="build"] .remix-stage__lights {
+  opacity: 0.9;
+  animation: remix-light-sweep 1.8s ease-in-out infinite alternate;
+}
+
+.remix-stage[data-phase="blending"] .remix-stage__lights {
+  opacity: 1;
+  animation: remix-light-sweep 0.8s ease-in-out infinite alternate;
+}
+
+.remix-stage[data-phase="blending"] .remix-stage__orb {
+  animation-duration: 1.15s;
+  box-shadow: 0 0 110px rgba(255, 88, 125, 0.48), inset 0 0 50px rgba(255, 160, 97, 0.34);
+}
+
+.remix-stage[data-phase="blending"] .remix-stage__equalizer i {
+  animation-duration: 0.48s;
+}
+
+.remix-stage__mix-status {
+  display: flex;
+  max-width: 440px;
+  align-items: center;
+  gap: 8px;
+  margin: -4px 0 14px;
+  color: #f0d7b6;
+  font-size: 10px;
+}
+
+.remix-stage__mix-status > span {
+  color: #ff9a79;
+  font-family: var(--font-mono);
+  font-size: 8px;
+}
+
+.remix-stage__mix-status strong {
+  overflow: hidden;
+  color: #f4f3f6;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.remix-stage__mix-status b {
+  color: #ff9879;
 }
 
 .remix-stage__topline,
@@ -180,8 +228,8 @@
   width: 3px;
   height: var(--bar-height);
   border-radius: 4px;
-  background: linear-gradient(0deg, #6d8dff, #d591ff 80%);
-  box-shadow: 0 0 9px rgba(180, 119, 255, 0.45);
+  background: linear-gradient(0deg, #ff735e, #f8cc70 80%);
+  box-shadow: 0 0 9px rgba(255, 135, 95, 0.45);
   animation: remix-bar-dance 0.9s ease-in-out var(--bar-delay) infinite alternate;
 }
 
@@ -753,7 +801,7 @@
 }
 
 .remix-shelf__note > span {
-  color: #b18aff;
+  color: #ff9879;
   font-size: 12px;
 }
 
@@ -773,9 +821,15 @@
   to { transform: scaleY(1.08); opacity: 1; }
 }
 
+@keyframes remix-light-sweep {
+  from { transform: translateX(-6%); }
+  to { transform: translateX(6%); }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .remix-stage__orb,
-  .remix-stage__equalizer i {
+  .remix-stage__equalizer i,
+  .remix-stage__lights {
     animation: none;
   }
 }

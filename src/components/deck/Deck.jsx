@@ -21,6 +21,7 @@ export default function Deck({
   channelVolume = 0.8,
   outputMix = 0.8,
   eq = { low: 0, mid: 0, high: 0 },
+  effects = { filter: false, echo: false, reverb: false, flanger: false },
   syncBpm,
   syncTime = 0,
   syncPitch = 0,
@@ -28,6 +29,7 @@ export default function Deck({
   onDurationChange,
   onBpmChange,
   onEqChange,
+  onEffectsChange,
   onVolumeChange,
   onPositionChange,
   onPitchChange,
@@ -51,12 +53,6 @@ export default function Deck({
   const [waveformPeaks, setWaveformPeaks] = useState([]);
   const [loopBeats, setLoopBeats] = useState(4);
   const [activeLoop, setActiveLoop] = useState(null);
-  const [effects, setEffects] = useState({
-    filter: false,
-    echo: false,
-    reverb: false,
-    flanger: false,
-  });
   const [filterCutoff, setFilterCutoff] = useState(1800);
   const [jogRotation, setJogRotation] = useState(0);
   const [isJogging, setIsJogging] = useState(false);
@@ -629,6 +625,10 @@ export default function Deck({
       handleStop();
       return;
     }
+    if (automationCommand.action === 'effects') {
+      onEffectsChange?.((current) => ({ ...current, ...automationCommand.effects }));
+      return;
+    }
     if (automationCommand.action === 'restart-play' && audioRef.current) {
       audioRef.current.currentTime = 0;
       setCurrentTime(0);
@@ -902,7 +902,7 @@ export default function Deck({
           <span>FX</span>
           <button
             type="button"
-            onClick={() => setEffects({ filter: false, echo: false, reverb: false, flanger: false })}
+            onClick={() => onEffectsChange?.({ filter: false, echo: false, reverb: false, flanger: false })}
           >
             RESET
           </button>
@@ -919,7 +919,7 @@ export default function Deck({
               type="button"
               className={`deck__effect-btn ${effects[effect] ? 'deck__effect-btn--active' : ''}`}
               aria-pressed={effects[effect]}
-              onClick={() => setEffects((current) => ({ ...current, [effect]: !current[effect] }))}
+              onClick={() => onEffectsChange?.((current) => ({ ...current, [effect]: !current[effect] }))}
             >
               {label}
             </button>

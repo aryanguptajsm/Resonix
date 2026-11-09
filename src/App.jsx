@@ -35,6 +35,10 @@ function App() {
     A: { low: 0, mid: 0, high: 0 },
     B: { low: 0, mid: 0, high: 0 },
   });
+  const [deckEffects, setDeckEffects] = useState({
+    A: { filter: false, echo: false, reverb: false, flanger: false },
+    B: { filter: false, echo: false, reverb: false, flanger: false },
+  });
   const [deckPitch, setDeckPitch] = useState({ A: 0, B: 0 });
   const [deckTimes, setDeckTimes] = useState({ A: 0, B: 0 });
   const [deckAutomation, setDeckAutomation] = useState({ A: null, B: null });
@@ -47,11 +51,18 @@ function App() {
   const appRef = useRef(null);
   const automationSequence = useRef(0);
 
-  const sendDeckCommand = (deckId, action, trackId, runId = 'manual') => {
+  const sendDeckCommand = (deckId, action, trackId, runId = 'manual', effects = {}) => {
     automationSequence.current += 1;
     setDeckAutomation((current) => ({
       ...current,
-      [deckId]: { id: `${runId}-${deckId}-${automationSequence.current}`, action, trackId },
+      [deckId]: { id: `${runId}-${deckId}-${automationSequence.current}`, action, trackId, effects },
+    }));
+  };
+
+  const handleDeckEffectsChange = (deckId, update) => {
+    setDeckEffects((current) => ({
+      ...current,
+      [deckId]: typeof update === 'function' ? update(current[deckId]) : update,
     }));
   };
 
@@ -163,19 +174,33 @@ function App() {
       ? (transitionBars * 4 * 60) / bpm
       : 12;
     const runId = crypto.randomUUID();
+    const startEq = deckEq;
+    const startEffects = deckEffects;
     setCrossfader(-1);
+    setDeckEq((current) => ({
+      A: { ...current.A, mid: current.A.mid, high: current.A.high },
+      B: { ...current.B, low: current.B.low - 10, mid: current.B.mid - 2, high: current.B.high - 3 },
+    }));
+    setDeckEffects((current) => ({
+      A: { ...current.A, echo: false, reverb: false },
+      B: { ...current.B, echo: false, reverb: false },
+    }));
     setAutoMix({
       id: runId,
       phase: 'intro',
       trackAId: trackA.id,
       trackBId: trackB.id,
       transitionSeconds,
+      startEq,
+      startEffects,
     });
     sendDeckCommand('A', 'restart-play', trackA.id, runId);
     setNotice(`Auto Mix is playing ${trackA.title}. ${trackB.title} will blend in near the end.`);
   };
 
   const handleStopAutoMix = () => {
+    if (autoMix?.startEq) setDeckEq(autoMix.startEq);
+    if (autoMix?.startEffects) setDeckEffects(autoMix.startEffects);
     if (deckTracks.A) sendDeckCommand('A', 'stop', deckTracks.A.id);
     if (deckTracks.B) sendDeckCommand('B', 'stop', deckTracks.B.id);
     setAutoMix(null);
@@ -184,19 +209,42 @@ function App() {
   };
 
   useEffect(() => {
-    if (autoMix?.phase !== 'intro' || deckTracks.A?.id !== autoMix.trackAId) return;
+    if (!['intro', 'build'].includes(autoMix?.phase) || deckTracks.A?.id !== autoMix.trackAId) return;
     const duration = Number(deckTracks.A.duration);
     if (!Number.isFinite(duration) || duration <= 0) return;
 
     const blendDuration = Math.min(autoMix.transitionSeconds, duration * 0.4);
     const blendStart = Math.max(0, duration - blendDuration);
+    const buildStart = Math.max(0, blendStart - Math.min(8, blendDuration * 0.5));
+
+    if (autoMix.phase === 'intro' && deckTimes.A >= buildStart && deckTimes.A < blendStart) {
+      setAutoMix((current) => (
+        current?.id === autoMix.id && current.phase === 'intro'
+          ? { ...current, phase: 'build' }
+          : current
+      ));
+      setDeckEq((current) => ({
+        ...current,
+        A: { ...current.A, mid: current.A.mid + 1.5, high: current.A.high + 2 },
+      }));
+      return;
+    }
     if (deckTimes.A < blendStart) return;
 
     setAutoMix((current) => (
-      current?.id === autoMix.id && current.phase === 'intro'
+      current?.id === autoMix.id && ['intro', 'build'].includes(current.phase)
         ? { ...current, phase: 'blending', blendDuration }
         : current
     ));
+    setDeckEq((current) => ({
+      ...current,
+      B: {
+        ...autoMix.startEq.B,
+        low: autoMix.startEq.B.low - 10,
+        mid: autoMix.startEq.B.mid - 2,
+        high: autoMix.startEq.B.high - 3,
+      },
+    }));
     const canSync = Number(deckTracks.A.bpm) > 0 && Number(deckTracks.B?.bpm) > 0;
     sendDeckCommand('B', canSync ? 'sync-play' : 'restart-play', deckTracks.B.id, autoMix.id);
   }, [autoMix, deckTimes.A, deckTracks.A?.duration, deckTracks.A?.id, deckTracks.A?.bpm, deckTracks.B?.id, deckTracks.B?.bpm]);
@@ -206,13 +254,44 @@ function App() {
 
     const startedAt = Date.now();
     const durationMs = Math.max(1000, autoMix.blendDuration * 1000);
+    let echoTriggered = false;
+    let reverbTriggered = false;
+    let lastEqUpdate = 0;
     const interval = window.setInterval(() => {
       const progress = Math.min(1, (Date.now() - startedAt) / durationMs);
       setCrossfader(-1 + progress * 2);
+      if (Date.now() - lastEqUpdate >= 120 || progress === 1) {
+        lastEqUpdate = Date.now();
+        const bassSwap = Math.min(1, Math.max(0, (progress - 0.3) / 0.3));
+        setDeckEq({
+          A: {
+            ...autoMix.startEq.A,
+            low: autoMix.startEq.A.low - (10 * bassSwap),
+            mid: autoMix.startEq.A.mid + 1.5 - (1.5 * progress),
+            high: autoMix.startEq.A.high + 2 - (2 * progress),
+          },
+          B: {
+            ...autoMix.startEq.B,
+            low: autoMix.startEq.B.low - (10 * (1 - bassSwap)),
+            mid: autoMix.startEq.B.mid - (2 * (1 - progress)),
+            high: autoMix.startEq.B.high - 3 + (3 * progress),
+          },
+        });
+      }
+      if (progress >= 0.4 && !reverbTriggered) {
+        reverbTriggered = true;
+        sendDeckCommand('B', 'effects', autoMix.trackBId, autoMix.id, { reverb: true });
+      }
+      if (progress >= 0.78 && !echoTriggered) {
+        echoTriggered = true;
+        sendDeckCommand('A', 'effects', autoMix.trackAId, autoMix.id, { echo: true });
+      }
       if (progress < 1) return;
 
       window.clearInterval(interval);
       sendDeckCommand('A', 'stop', autoMix.trackAId, autoMix.id);
+      setDeckEq(autoMix.startEq);
+      setDeckEffects(autoMix.startEffects);
       setAutoMix((current) => (
         current?.id === autoMix.id ? { ...current, phase: 'finished' } : current
       ));
@@ -354,6 +433,7 @@ function App() {
               channelVolume={deckLevels.A}
               outputMix={getDeckOutputVolume('A')}
               eq={deckEq.A}
+              effects={deckEffects.A}
               syncBpm={deckTracks.B?.bpm}
               syncTime={deckTimes.B}
               syncPitch={deckPitch.B}
@@ -367,6 +447,7 @@ function App() {
                 ...current,
                 A: { ...current.A, [band]: value },
               }))}
+              onEffectsChange={(update) => handleDeckEffectsChange('A', update)}
               onVolumeChange={(value) => setDeckLevels((current) => ({ ...current, A: value }))}
               onPlayingChange={(isPlaying) => setPlayingDecks((current) => ({ ...current, A: isPlaying }))}
             />
@@ -377,6 +458,7 @@ function App() {
               channelVolume={deckLevels.B}
               outputMix={getDeckOutputVolume('B')}
               eq={deckEq.B}
+              effects={deckEffects.B}
               syncBpm={deckTracks.A?.bpm}
               syncTime={deckTimes.A}
               syncPitch={deckPitch.A}
@@ -390,6 +472,7 @@ function App() {
                 ...current,
                 B: { ...current.B, [band]: value },
               }))}
+              onEffectsChange={(update) => handleDeckEffectsChange('B', update)}
               onVolumeChange={(value) => setDeckLevels((current) => ({ ...current, B: value }))}
               onPlayingChange={(isPlaying) => setPlayingDecks((current) => ({ ...current, B: isPlaying }))}
             />

@@ -50,6 +50,14 @@ function RemixStudio({
   const canGenerate = Boolean(trackA && trackB && trackA.id !== trackB.id);
   const activePlan = mixPlans.find((item) => item.id === activePlanId);
   const isAutoMixRunning = ['intro', 'blending'].includes(autoMixState?.phase);
+  const stagePhase = autoMixState?.phase || 'idle';
+  const stageStatus = {
+    idle: 'READY FOR THE ROOM',
+    intro: 'DECK A / SET THE GROOVE',
+    build: 'BUILD THE ROOM',
+    blending: 'DROP / LIVE BLEND',
+    finished: 'DECK B / SET FLOWING',
+  }[stagePhase];
 
   const generateMixPlan = () => {
     if (!canGenerate) return;
@@ -100,10 +108,10 @@ function RemixStudio({
 
   return (
     <section className="remix-studio" id="remix" aria-labelledby="remix-title">
-      <div className="remix-stage">
+      <div className="remix-stage" data-phase={stagePhase}>
         <div className="remix-stage__lights" aria-hidden="true" />
         <div className="remix-stage__topline">
-          <span className="remix-stage__live"><span /> REMIX STAGE</span>
+          <span className="remix-stage__live" aria-live="polite"><span /> {stageStatus}</span>
           <span className="remix-stage__edition">RESONIX / LIVE DJ LAB</span>
         </div>
         <div className="remix-stage__content">
@@ -113,6 +121,14 @@ function RemixStudio({
             <p className="remix-stage__description">
               Choose two songs, press Auto Mix, and Resonix starts the decks and handles the handoff. No API key needed.
             </p>
+            {isAutoMixRunning && (
+              <div className="remix-stage__mix-status" aria-live="polite">
+                <span>NOW MIXING</span>
+                <strong>{trackA?.title || 'Deck A'}</strong>
+                <b aria-hidden="true">→</b>
+                <strong>{trackB?.title || 'Deck B'}</strong>
+              </div>
+            )}
             <a className="remix-stage__cta" href="#remix-create">
               Choose your two songs <span aria-hidden="true">↗</span>
             </a>
@@ -124,7 +140,9 @@ function RemixStudio({
                 <i key={index} style={{ '--bar-height': `${height}%`, '--bar-delay': `${(index % 9) * -0.13}s` }} />
               ))}
             </div>
-            <span className="remix-stage__visual-caption">FEEL THE DROP</span>
+            <span className="remix-stage__visual-caption">
+              {stagePhase === 'build' ? 'BUILDING TENSION' : stagePhase === 'blending' ? 'BASS / ECHO / DROP' : 'FEEL THE DROP'}
+            </span>
           </div>
         </div>
         <div className="remix-stage__footer">
@@ -304,7 +322,7 @@ function RemixStudio({
 
             <div className="remix-shelf__note">
               <span aria-hidden="true">✦</span>
-              <p>Use the plan with both decks, EQ, effects, and crossfader. Confirm every cue by ear before the handoff.</p>
+              <p>Auto Mix shapes the midrange, swaps bass, adds incoming reverb, and echoes the outgoing track. Audio stays local.</p>
             </div>
           </aside>
         </div>
