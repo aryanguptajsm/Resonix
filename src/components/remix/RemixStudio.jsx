@@ -49,7 +49,7 @@ function RemixStudio({
   const trackB = tracks.find((track) => track.id === trackBId);
   const canGenerate = Boolean(trackA && trackB && trackA.id !== trackB.id);
   const activePlan = mixPlans.find((item) => item.id === activePlanId);
-  const isAutoMixRunning = ['intro', 'blending'].includes(autoMixState?.phase);
+  const isAutoMixRunning = ['intro', 'build', 'blending'].includes(autoMixState?.phase);
   const stagePhase = autoMixState?.phase || 'idle';
   const stageStatus = {
     idle: 'READY FOR THE ROOM',

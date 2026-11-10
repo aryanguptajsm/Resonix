@@ -12,6 +12,10 @@ Browsers without persistent file access can still import and play tracks, but th
 
 Choose two tracks and a style to build a live DJ plan in your browser. The planner uses available BPM and key metadata plus practical phrase, EQ, and transition rules. When analysis data is missing or tempos do not safely match, it recommends beatmatching by ear instead of inventing values. The plan helps you mix the pair on Decks A and B; it does not render a new audio file.
 
+## Concert set
+
+The local mini-AI set builder orders every track in your library using available tempo and key metadata, then plays the set across alternating decks with automatic phrase-length transitions. This is a lightweight recommendation algorithm, not a trained neural model; it does not upload audio or train on your files. Tracks without analysis metadata are still included and use conservative fallback transition guidance. Keep the browser tab open while the set is playing.
+
 ## Requirements
 
 - Node.js 22.12 or newer
