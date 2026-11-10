@@ -164,6 +164,7 @@ function App() {
     const fromDeck = options.fromDeck || 'A';
     const toDeck = fromDeck === 'A' ? 'B' : 'A';
     const keepFromPlaying = Boolean(options.keepFromPlaying && deckTracks[fromDeck]?.id === trackA.id);
+    if (!options.isSmartSet) setSmartSet(null);
     setAutoMix(null);
     const [loadedFrom, loadedTo] = await Promise.all([
       keepFromPlaying ? Promise.resolve(true) : handleLoadToDeck(trackA, fromDeck),
@@ -172,7 +173,7 @@ function App() {
 
     if (!loadedFrom || !loadedTo) {
       setNotice('Both tracks must be available before Auto Mix can start.');
-      return;
+      return false;
     }
 
     const bpm = Number(trackA.bpm);
@@ -211,6 +212,7 @@ function App() {
     });
     if (!keepFromPlaying) sendDeckCommand(fromDeck, 'restart-play', trackA.id, runId);
     setNotice(`Auto Mix is playing ${trackA.title}. ${trackB.title} will blend in near the end.`);
+    return true;
   };
 
   const handleStopAutoMix = () => {
@@ -246,7 +248,11 @@ function App() {
       ));
       setDeckEq((current) => ({
         ...current,
-        A: { ...current.A, mid: current.A.mid + 1.5, high: current.A.high + 2 },
+        [fromDeck]: {
+          ...current[fromDeck],
+          mid: current[fromDeck].mid + 1.5,
+          high: current[fromDeck].high + 2,
+        },
       }));
       return;
     }
@@ -347,17 +353,23 @@ function App() {
       return;
     }
 
-    setSmartSet((current) => (
-      current ? { ...current, nextIndex: current.nextIndex + 1 } : current
-    ));
     const plan = createLocalRemixPlan({
       trackA: currentTrack,
       trackB: nextTrack,
       style: 'festival',
     });
-    handleAutoMixPair(currentTrack, nextTrack, plan, {
+    void handleAutoMixPair(currentTrack, nextTrack, plan, {
       fromDeck: autoMix.toDeck || 'B',
       keepFromPlaying: true,
+      isSmartSet: true,
+    }).then((started) => {
+      if (!started) {
+        setSmartSet(null);
+        return;
+      }
+      setSmartSet((current) => (
+        current ? { ...current, nextIndex: current.nextIndex + 1 } : current
+      ));
     });
   }, [autoMix, smartSet, tracks]);
 
@@ -366,6 +378,7 @@ function App() {
       setNotice('Import at least two tracks to start a continuous set.');
       return;
     }
+    if (autoMix) handleStopAutoMix();
     const trackIds = setlist.map((track) => track.id);
     setSmartSet({ trackIds, nextIndex: 2 });
     advancedSetMixId.current = null;
@@ -374,7 +387,7 @@ function App() {
       trackB: setlist[1],
       style: 'festival',
     });
-    handleAutoMixPair(setlist[0], setlist[1], plan);
+    void handleAutoMixPair(setlist[0], setlist[1], plan, { isSmartSet: true });
   };
 
   const handleImport = (files, handles = []) => {
