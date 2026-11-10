@@ -104,6 +104,77 @@ function describeKeyRelationship(firstKey, secondKey) {
   return `Keys ${firstCamelot.number}${firstCamelot.mode} and ${secondCamelot.number}${secondCamelot.mode} are not close on the Camelot wheel; favor a short percussion-led handoff.`;
 }
 
+function tempoCompatibility(firstBpm, secondBpm) {
+  if (!firstBpm || !secondBpm) return 0.5;
+  const bestDifference = tempoOptions(firstBpm).reduce((best, firstTempo) => (
+    Math.min(best, ...tempoOptions(secondBpm).map((secondTempo) => (
+      Math.abs(firstTempo - secondTempo) / ((firstTempo + secondTempo) / 2)
+    )))
+  ), Infinity);
+  return Math.max(0, 1 - bestDifference / 0.12);
+}
+
+function keyCompatibility(firstKey, secondKey) {
+  const first = toCamelot(firstKey);
+  const second = toCamelot(secondKey);
+  if (!first || !second) return 0.5;
+  const ringDistance = Math.abs(first.number - second.number);
+  const adjacent = Math.min(ringDistance, 12 - ringDistance) === 1;
+  if (first.number === second.number && first.mode === second.mode) return 1;
+  if (first.number === second.number) return 0.9;
+  if (first.mode === second.mode && adjacent) return 0.85;
+  return 0.2;
+}
+
+export function createLocalSmartSetlist(tracks, openingTrackId = tracks[0]?.id) {
+  if (!Array.isArray(tracks) || tracks.length < 2) {
+    throw new Error('Import at least two tracks to build a concert set.');
+  }
+
+  const openingIndex = tracks.findIndex((track) => track.id === openingTrackId);
+  if (openingIndex < 0) {
+    throw new Error('Choose an opening track from your library.');
+  }
+
+  const remaining = tracks.filter((_, index) => index !== openingIndex);
+  const knownBpms = tracks.map((track) => parseBpm(track.bpm)).filter(Boolean);
+  const lowestBpm = Math.min(...knownBpms);
+  const highestBpm = Math.max(...knownBpms);
+  const setlist = [tracks[openingIndex]];
+
+  while (remaining.length > 0) {
+    const previous = setlist[setlist.length - 1];
+    const position = setlist.length / Math.max(1, tracks.length - 1);
+    const targetBpm = knownBpms.length
+      ? lowestBpm + (highestBpm - lowestBpm) * position
+      : null;
+    let bestIndex = 0;
+    let bestScore = -Infinity;
+
+    remaining.forEach((candidate, index) => {
+      const bpm = parseBpm(candidate.bpm);
+      const energyFit = targetBpm && bpm
+        ? Math.max(0, 1 - Math.abs(targetBpm - bpm) / 60)
+        : 0.5;
+      const artistVariety = candidate.artist && candidate.artist === previous.artist ? 0 : 0.12;
+      const score = (
+        tempoCompatibility(parseBpm(previous.bpm), bpm) * 0.55
+        + keyCompatibility(previous.key, candidate.key) * 0.3
+        + energyFit * 0.15
+        + artistVariety
+      );
+      if (score > bestScore) {
+        bestScore = score;
+        bestIndex = index;
+      }
+    });
+
+    setlist.push(remaining.splice(bestIndex, 1)[0]);
+  }
+
+  return setlist;
+}
+
 export function createLocalRemixPlan({ trackA, trackB, style, prompt = '' }) {
   const stylePlan = STYLE_PLANS[style];
   if (!stylePlan || !trackA?.title || !trackB?.title || trackA.title === trackB.title && trackA.artist === trackB.artist) {
