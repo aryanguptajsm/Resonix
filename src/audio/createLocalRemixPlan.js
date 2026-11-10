@@ -1,6 +1,6 @@
 const STYLE_PLANS = {
   festival: {
-    name: 'Festival House',
+    name: 'Festival House'
     bars: 16,
     arc: 'Keep the groove steady, build anticipation across the blend, then hand the downbeat to the incoming track.',
     transition: 'Start the incoming percussion on a phrase boundary. Blend for 16 bars, trade the bass at the next phrase, then bring up the incoming drop.',
