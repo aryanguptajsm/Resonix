@@ -274,8 +274,30 @@ function App() {
     }));
     const incomingTrack = deckTracks[toDeck];
     const canSync = Number(outgoingTrack.bpm) > 0 && Number(incomingTrack?.bpm) > 0;
-    sendDeckCommand(toDeck, canSync ? 'sync-play' : 'restart-play', incomingTrack.id, autoMix.id);
+    sendDeckCommand(
+      toDeck,
+      canSync ? 'sync-play' : 'restart-play',
+      incomingTrack.id,
+      autoMix.id,
+      { filter: true, filterCutoff: 1800 },
+    );
   }, [autoMix, deckTimes, deckTracks]);
+
+  useEffect(() => {
+    if (!smartSet || autoMix?.phase === 'finished') return;
+    const stage = autoMix?.phase === 'build'
+      ? 'build'
+      : autoMix?.phase === 'blending'
+        ? 'blending'
+        : autoMix?.phase === 'intro'
+          ? smartSet.nextIndex === 2 ? 'opening' : 'middle'
+          : smartSet.stage;
+    if (stage && stage !== smartSet.stage) {
+      setSmartSet((current) => (
+        current && current.stage !== stage ? { ...current, stage } : current
+      ));
+    }
+  }, [autoMix?.id, autoMix?.phase, smartSet?.nextIndex, smartSet?.stage]);
 
   useEffect(() => {
     if (autoMix?.phase !== 'blending') return undefined;
@@ -313,7 +335,7 @@ function App() {
       }
       if (progress >= 0.4 && !reverbTriggered) {
         reverbTriggered = true;
-        sendDeckCommand(toDeck, 'effects', autoMix.trackBId, autoMix.id, { reverb: true });
+        sendDeckCommand(toDeck, 'effects', autoMix.trackBId, autoMix.id, { reverb: true, filter: false });
       }
       if (progress >= 0.78 && !echoTriggered) {
         echoTriggered = true;
@@ -340,8 +362,20 @@ function App() {
 
     const nextTrackId = smartSet.trackIds[smartSet.nextIndex];
     if (!nextTrackId) {
-      setSmartSet(null);
-      setNotice(`All ${smartSet.trackIds.length} tracks are in the set. The final song will play through.`);
+      const finalDeck = autoMix.toDeck || 'B';
+      const finalTrack = tracks.find((track) => track.id === autoMix.trackBId);
+      setSmartSet((current) => (
+        current
+          ? {
+            ...current,
+            stage: 'finale',
+            finalDeck,
+            finalTrackId: autoMix.trackBId,
+            finalLevel: deckLevels[finalDeck],
+          }
+          : current
+      ));
+      setNotice(`Grand finale: ${finalTrack?.title || 'the final track'} will fade out at the end.`);
       return;
     }
 
@@ -371,7 +405,41 @@ function App() {
         current ? { ...current, nextIndex: current.nextIndex + 1 } : current
       ));
     });
-  }, [autoMix, smartSet, tracks]);
+  }, [autoMix, smartSet, tracks, deckLevels]);
+
+  useEffect(() => {
+    if (!['finale', 'finale-fade'].includes(smartSet?.stage) || !smartSet.finalDeck || !smartSet.finalTrackId) return;
+
+    const { finalDeck, finalTrackId } = smartSet;
+    const finalTrack = deckTracks[finalDeck];
+    if (finalTrack?.id !== finalTrackId) return;
+    const duration = Number(finalTrack.duration);
+    if (!Number.isFinite(duration) || duration <= 0) return;
+
+    const fadeSeconds = Math.min(10, Math.max(4, duration * 0.08));
+    const remaining = duration - deckTimes[finalDeck];
+    if (remaining > fadeSeconds) return;
+
+    const progress = Math.max(0, remaining / fadeSeconds);
+    const finalLevel = smartSet.finalLevel ?? 0.8;
+    setDeckLevels((current) => {
+      const nextLevel = finalLevel * progress;
+      return Math.abs(current[finalDeck] - nextLevel) < 0.01
+        ? current
+        : { ...current, [finalDeck]: nextLevel };
+    });
+
+    if (remaining <= 0) {
+      sendDeckCommand(finalDeck, 'stop', finalTrackId, 'concert-finale');
+      setDeckLevels((current) => ({ ...current, [finalDeck]: finalLevel }));
+      setSmartSet(null);
+      setNotice('Concert set complete. The finale faded out cleanly.');
+    } else if (smartSet.stage !== 'finale-fade') {
+      setSmartSet((current) => (
+        current?.stage === 'finale' ? { ...current, stage: 'finale-fade' } : current
+      ));
+    }
+  }, [smartSet, deckTimes, deckTracks]);
 
   const handleStartSmartSet = (setlist) => {
     if (setlist.length < 2) {
@@ -380,7 +448,7 @@ function App() {
     }
     if (autoMix) handleStopAutoMix();
     const trackIds = setlist.map((track) => track.id);
-    setSmartSet({ trackIds, nextIndex: 2 });
+    setSmartSet({ trackIds, nextIndex: 2, stage: 'opening' });
     advancedSetMixId.current = null;
     const plan = createLocalRemixPlan({
       trackA: setlist[0],
@@ -486,6 +554,18 @@ function App() {
 
   const handleSyncFeedback = (message) => setNotice(message);
 
+  const handleTrackEnded = (deckId, trackId) => {
+    if (
+      ['finale', 'finale-fade'].includes(smartSet?.stage)
+      && smartSet.finalDeck === deckId
+      && smartSet.finalTrackId === trackId
+    ) {
+      setDeckLevels((current) => ({ ...current, [deckId]: smartSet.finalLevel ?? current[deckId] }));
+      setSmartSet(null);
+      setNotice('Concert set complete. The finale ended cleanly.');
+    }
+  };
+
   const handleNavigate = (page, section) => {
     setActivePage(page);
     if (page === 'studio' && section) {
@@ -541,6 +621,7 @@ function App() {
               onEffectsChange={(update) => handleDeckEffectsChange('A', update)}
               onVolumeChange={(value) => setDeckLevels((current) => ({ ...current, A: value }))}
               onPlayingChange={(isPlaying) => setPlayingDecks((current) => ({ ...current, A: isPlaying }))}
+              onTrackEnded={handleTrackEnded}
             />
             <Deck
               deckId="B"
@@ -566,6 +647,7 @@ function App() {
               onEffectsChange={(update) => handleDeckEffectsChange('B', update)}
               onVolumeChange={(value) => setDeckLevels((current) => ({ ...current, B: value }))}
               onPlayingChange={(isPlaying) => setPlayingDecks((current) => ({ ...current, B: isPlaying }))}
+              onTrackEnded={handleTrackEnded}
             />
             <Mixer
               deckLevels={deckLevels}
@@ -579,6 +661,10 @@ function App() {
               onEqReset={(deckId) => setDeckEq((current) => ({
                 ...current,
                 [deckId]: { low: 0, mid: 0, high: 0 },
+              }))}
+              onBalancedBass={() => setDeckEq((current) => ({
+                A: { ...current.A, low: -2 },
+                B: { ...current.B, low: -2 },
               }))}
               onCrossfaderChange={setCrossfader}
             />

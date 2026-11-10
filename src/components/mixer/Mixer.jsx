@@ -14,6 +14,7 @@ function Mixer({
   onEqChange,
   onEqReset,
   onCrossfaderChange,
+  onBalancedBass,
 }) {
   const blendLabel = crossfader < -0.02
     ? 'A focus'
@@ -25,6 +26,14 @@ function Mixer({
     <aside className="mixer">
       <div className="mixer__header">
         <span className="mixer__title">MIXER</span>
+        <button
+          className="mixer__bass-button"
+          type="button"
+          onClick={onBalancedBass}
+          title="Set both decks to a gentle -2 dB bass trim"
+        >
+          BALANCED BASS
+        </button>
       </div>
 
       {['A', 'B'].map((deckId) => (

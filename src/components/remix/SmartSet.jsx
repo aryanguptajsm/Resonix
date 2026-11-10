@@ -15,6 +15,25 @@ function SmartSet({ tracks, autoSet, onStart, onStop }) {
   const handleStart = () => {
     if (setlist.length >= 2) onStart(setlist);
   };
+  const activeStage = autoSet?.stage || 'ready';
+  const stageIndex = {
+    ready: -1,
+    opening: 0,
+    build: 1,
+    blending: 1,
+    middle: 2,
+    finale: 3,
+    'finale-fade': 3,
+  }[activeStage] ?? -1;
+  const stageLabel = {
+    ready: 'READY FOR THE ROOM',
+    opening: 'OPENING / WARM-UP',
+    build: 'BUILDING THE ROOM',
+    blending: 'LIVE BASS + ECHO HANDOFF',
+    middle: 'MIDDLE OF THE SET',
+    finale: 'GRAND FINALE',
+    'finale-fade': 'FINAL FADE',
+  }[activeStage] || 'READY FOR THE ROOM';
 
   return (
     <section className="smart-set" aria-labelledby="smart-set-title">
@@ -58,9 +77,26 @@ function SmartSet({ tracks, autoSet, onStart, onStop }) {
           <small className="smart-set__hint">Import at least two songs to start a continuous set.</small>
         )}
         {autoSet && (
-          <small className="smart-set__hint" role="status">
-            Live set · {autoSet.nextIndex} of {autoSet.trackIds.length} tracks cued
-          </small>
+          <>
+            <small className="smart-set__hint" role="status">
+              {stageLabel} · {Math.min(autoSet.nextIndex, autoSet.trackIds.length)} of {autoSet.trackIds.length} tracks cued
+            </small>
+            <ol className="smart-set__arc" aria-label="Concert mix progress">
+              {['START', 'BUILD + DROP', 'MIDDLE', 'ENDING'].map((step, index) => (
+                <li
+                  key={step}
+                  className={index === stageIndex
+                    ? 'smart-set__arc-step smart-set__arc-step--active'
+                    : index < stageIndex
+                      ? 'smart-set__arc-step smart-set__arc-step--done'
+                      : 'smart-set__arc-step'}
+                >
+                  <span>{String(index + 1).padStart(2, '0')}</span>
+                  {step}
+                </li>
+              ))}
+            </ol>
+          </>
         )}
       </div>
 

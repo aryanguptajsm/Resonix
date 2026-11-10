@@ -35,6 +35,7 @@ export default function Deck({
   onPitchChange,
   onSyncFeedback,
   onPlayingChange,
+  onTrackEnded,
 }) {
   const audioRef = useRef(null);
   const audioGraphRef = useRef(null);
@@ -349,6 +350,7 @@ export default function Deck({
     const midFilter = context.createBiquadFilter();
     const highFilter = context.createBiquadFilter();
     const channelGain = context.createGain();
+    const peakGuard = context.createDynamicsCompressor();
     const loopGain = context.createGain();
     const fxFilter = context.createBiquadFilter();
     const delay = context.createDelay(2);
@@ -372,6 +374,11 @@ export default function Deck({
     highFilter.frequency.value = 4000;
     highFilter.gain.value = eq.high;
     channelGain.gain.value = outputGain;
+    peakGuard.threshold.value = -6;
+    peakGuard.knee.value = 0;
+    peakGuard.ratio.value = 12;
+    peakGuard.attack.value = 0.003;
+    peakGuard.release.value = 0.18;
     loopGain.gain.value = 1;
     fxFilter.type = 'lowpass';
     fxFilter.frequency.value = effects.filter ? filterCutoff : context.sampleRate / 2;
@@ -402,18 +409,19 @@ export default function Deck({
     highFilter.connect(channelGain);
     channelGain.connect(loopGain);
     loopGain.connect(fxFilter);
-    fxFilter.connect(context.destination);
+    fxFilter.connect(peakGuard);
     fxFilter.connect(delay);
     delay.connect(echoFeedback);
     echoFeedback.connect(delay);
     delay.connect(echoGain);
-    echoGain.connect(context.destination);
     fxFilter.connect(convolver);
     convolver.connect(reverbGain);
-    reverbGain.connect(context.destination);
     fxFilter.connect(flangerDelay);
     flangerDelay.connect(flangerGain);
-    flangerGain.connect(context.destination);
+    echoGain.connect(peakGuard);
+    reverbGain.connect(peakGuard);
+    flangerGain.connect(peakGuard);
+    peakGuard.connect(context.destination);
     flangerLfo.connect(flangerDepth);
     flangerDepth.connect(flangerDelay.delayTime);
     flangerLfo.start();
@@ -466,7 +474,7 @@ export default function Deck({
     onPitchChange?.(nextPitch);
   };
 
-  const handleSync = () => {
+  const handleSync = ({ startAtBeginning = false } = {}) => {
     const sourceBpm = Number(syncBpm);
     const targetBpm = Number(track?.bpm);
     if (!Number.isFinite(sourceBpm) || !Number.isFinite(targetBpm) || sourceBpm <= 0 || targetBpm <= 0) {
@@ -477,7 +485,7 @@ export default function Deck({
     const requestedPitch = ((sourceBpm * (1 + syncPitch / 100) / targetBpm) - 1) * 100;
     const nextPitch = Math.round(Math.max(-12, Math.min(12, requestedPitch)));
     const matchedBpm = targetBpm * (1 + nextPitch / 100);
-    const sourceBeat = Math.round((syncTime * sourceBpm) / 60);
+    const sourceBeat = startAtBeginning ? 0 : Math.round((syncTime * sourceBpm) / 60);
     const targetBeatTime = (sourceBeat * 60) / targetBpm;
     updatePitch(nextPitch);
     seekTo(targetBeatTime);
@@ -625,8 +633,14 @@ export default function Deck({
       handleStop();
       return;
     }
+    if (automationCommand.effects) {
+      const { filterCutoff: nextFilterCutoff, ...effectUpdates } = automationCommand.effects;
+      if (Object.keys(effectUpdates).length > 0) {
+        onEffectsChange?.((current) => ({ ...current, ...effectUpdates }));
+      }
+      if (Number.isFinite(nextFilterCutoff)) setFilterCutoff(nextFilterCutoff);
+    }
     if (automationCommand.action === 'effects') {
-      onEffectsChange?.((current) => ({ ...current, ...automationCommand.effects }));
       return;
     }
     if (automationCommand.action === 'restart-play' && audioRef.current) {
@@ -634,7 +648,7 @@ export default function Deck({
       setCurrentTime(0);
       onPositionChange?.(0);
     }
-    if (automationCommand.action === 'sync-play') handleSync();
+    if (automationCommand.action === 'sync-play') handleSync({ startAtBeginning: true });
     void handlePlay();
   }, [automationCommand, track?.id, track?.url]);
 
@@ -958,6 +972,7 @@ export default function Deck({
         onEnded={() => {
           setIsPlaying(false);
           onPlayingChange?.(false);
+          onTrackEnded?.(deckId, track?.id);
         }}
         onError={handleAudioError}
       />

@@ -27,6 +27,24 @@
   letter-spacing: 0.15em;
 }
 
+.mixer__bass-button {
+  min-height: 28px;
+  padding: 0 9px;
+  border: 1px solid rgba(63, 224, 208, 0.26);
+  border-radius: 6px;
+  background: rgba(63, 224, 208, 0.08);
+  color: #8fe1d7;
+  font-size: 8px;
+  font-weight: 750;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+}
+
+.mixer__bass-button:hover {
+  border-color: rgba(63, 224, 208, 0.52);
+  background: rgba(63, 224, 208, 0.15);
+}
+
 .mixer__channel-control,
 .mixer__crossfader-block {
   display: flex;

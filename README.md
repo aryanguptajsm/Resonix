@@ -14,7 +14,9 @@ Choose two tracks and a style to build a live DJ plan in your browser. The plann
 
 ## Concert set
 
-The local mini-AI set builder orders every track in your library using available tempo and key metadata, then plays the set across alternating decks with automatic phrase-length transitions. This is a lightweight recommendation algorithm, not a trained neural model; it does not upload audio or train on your files. Tracks without analysis metadata are still included and use conservative fallback transition guidance. Keep the browser tab open while the set is playing.
+The local mini-AI set builder orders every track in your library using available tempo and key metadata, then plays the set across alternating decks with automatic phrase-length transitions, a concert-style opening/build/handoff/middle/finale arc, and a final fade. This is a lightweight recommendation algorithm, not a trained neural model; it does not upload audio or train on your files. Tracks without analysis metadata are still included and use conservative fallback transition guidance. Keep the browser tab open while the set is playing.
+
+The mixer’s **Balanced Bass** button applies a gentle -2 dB low-EQ trim to both decks; use EQ Reset for a flat response. Speaker, room, and track mastering vary, so no single EQ preset can guarantee perfect bass on every system. The set transition automates crossfader volume, EQ bass handoff, filter opening, reverb, and outgoing echo. A peak guard helps control brief output peaks but is not a substitute for safe speaker levels.
 
 ## Requirements
 
