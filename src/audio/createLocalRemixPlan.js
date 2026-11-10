@@ -177,7 +177,8 @@ export function createLocalSmartSetlist(tracks, openingTrackId = tracks[0]?.id) 
 
 export function createLocalRemixPlan({ trackA, trackB, style, prompt = '' }) {
   const stylePlan = STYLE_PLANS[style];
-  if (!stylePlan || !trackA?.title || !trackB?.title || trackA.title === trackB.title && trackA.artist === trackB.artist) {
+  const sameTrack = trackA === trackB || Boolean(trackA?.id && trackA.id === trackB?.id);
+  if (!stylePlan || !trackA?.title || !trackB?.title || sameTrack) {
     throw new Error('Choose two different tracks and a supported mix style.');
   }
 

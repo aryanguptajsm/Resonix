@@ -12,6 +12,7 @@ const STAGE_BARS = [24, 42, 30, 58, 36, 74, 46, 88, 52, 70, 38, 96, 56, 78, 42, 
 
 function trackDetails(track) {
   return {
+    id: track.id,
     title: track.title,
     artist: track.artist,
     bpm: track.bpm,

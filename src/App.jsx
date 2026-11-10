@@ -387,7 +387,9 @@ function App() {
       trackB: setlist[1],
       style: 'festival',
     });
-    void handleAutoMixPair(setlist[0], setlist[1], plan, { isSmartSet: true });
+    void handleAutoMixPair(setlist[0], setlist[1], plan, { isSmartSet: true }).then((started) => {
+      if (!started) setSmartSet(null);
+    });
   };
 
   const handleImport = (files, handles = []) => {
