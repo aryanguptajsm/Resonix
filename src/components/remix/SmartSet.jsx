@@ -36,7 +36,7 @@ function SmartSet({ tracks, autoSet, onStart, onStop }) {
   }[activeStage] || 'READY FOR THE ROOM';
 
   return (
-    <section className="smart-set" aria-labelledby="smart-set-title">
+    <section className="smart-set" id="smart-set" aria-labelledby="smart-set-title">
       <div className="smart-set__intro">
         <span className="smart-set__eyebrow">LOCAL CONCERT MIX · NO UPLOADS</span>
         <h2 id="smart-set-title">Build a live concert mix</h2>

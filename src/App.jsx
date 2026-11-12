@@ -159,18 +159,22 @@ function App() {
     return rightMix;
   };
 
-  const handleAutoMixPair = async (trackA, trackB, plan, options = {}) => {
-    const fromDeck = options.fromDeck || 'A';
+  const handleAutoMixPair = async (
+    trackA,
+    trackB,
+    plan,
+    { fromDeck = 'A', keepFromPlaying = false } = {},
+  ) => {
     const toDeck = fromDeck === 'A' ? 'B' : 'A';
-    const keepFromPlaying = Boolean(options.keepFromPlaying && deckTracks[fromDeck]?.id === trackA.id);
+    const shouldKeepFromPlaying = keepFromPlaying && deckTracks[fromDeck]?.id === trackA.id;
     setAutoMix(null);
     const [loadedFrom, loadedTo] = await Promise.all([
-      keepFromPlaying ? Promise.resolve(true) : handleLoadToDeck(trackA, fromDeck),
+      shouldKeepFromPlaying ? Promise.resolve(true) : handleLoadToDeck(trackA, fromDeck),
       handleLoadToDeck(trackB, toDeck),
     ]);
 
     if (!loadedFrom || !loadedTo) {
-      setNotice('Both tracks must be available before Auto Mix can start.');
+      setNotice('Both songs must be available before the concert mix can start.');
       return false;
     }
 
@@ -205,12 +209,11 @@ function App() {
       trackAId: trackA.id,
       trackBId: trackB.id,
       transitionSeconds,
-      midpointTransition: Boolean(options.midpointTransition),
       startEq,
       startEffects,
     });
-    if (!keepFromPlaying) sendDeckCommand(fromDeck, 'restart-play', trackA.id, runId);
-    setNotice(`Auto Mix is playing ${trackA.title}. ${trackB.title} will blend in near the end.`);
+    if (!shouldKeepFromPlaying) sendDeckCommand(fromDeck, 'restart-play', trackA.id, runId);
+    setNotice(`Concert mix is playing ${trackA.title}. ${trackB.title} will blend in around the middle.`);
     return true;
   };
 
@@ -222,7 +225,7 @@ function App() {
     setAutoMix(null);
     setSmartSet(null);
     setCrossfader(0);
-    setNotice('Auto Mix stopped.');
+    setNotice('Concert mix stopped.');
   };
 
   useEffect(() => {
@@ -235,9 +238,7 @@ function App() {
     if (!Number.isFinite(duration) || duration <= 0) return;
 
     const blendDuration = Math.min(autoMix.transitionSeconds, duration * 0.4);
-    const blendStart = autoMix.midpointTransition
-      ? duration * 0.5
-      : Math.max(0, duration - blendDuration);
+    const blendStart = duration * 0.5;
     const buildStart = Math.max(0, blendStart - Math.min(8, blendDuration * 0.5));
     const currentTime = deckTimes[fromDeck];
 
@@ -351,7 +352,7 @@ function App() {
       setAutoMix((current) => (
         current?.id === autoMix.id ? { ...current, phase: 'finished' } : current
       ));
-      setNotice(`Auto Mix complete. ${deckTracks[toDeck]?.title || 'Track B'} has the mix.`);
+      setNotice(`Handoff complete. ${deckTracks[toDeck]?.title || 'The next song'} has the mix.`);
     }, 60);
 
     return () => window.clearInterval(interval);
@@ -384,7 +385,7 @@ function App() {
     const nextTrack = tracks.find((track) => track.id === nextTrackId);
     if (!currentTrack || !nextTrack) {
       setSmartSet(null);
-      setNotice('The next set track is no longer available. Import it again to continue.');
+      setNotice('The next concert song is no longer available. Import it again to continue.');
       return;
     }
 
@@ -396,7 +397,6 @@ function App() {
     void handleAutoMixPair(currentTrack, nextTrack, plan, {
       fromDeck: autoMix.toDeck || 'B',
       keepFromPlaying: true,
-      midpointTransition: true,
     }).then((started) => {
       if (!started) {
         setSmartSet(null);
@@ -434,7 +434,7 @@ function App() {
       sendDeckCommand(finalDeck, 'stop', finalTrackId, 'concert-finale');
       setDeckLevels((current) => ({ ...current, [finalDeck]: finalLevel }));
       setSmartSet(null);
-      setNotice('Concert set complete. The finale faded out cleanly.');
+      setNotice('Concert mix complete. The finale faded out cleanly.');
     } else if (smartSet.stage !== 'finale-fade') {
       setSmartSet((current) => (
         current?.stage === 'finale' ? { ...current, stage: 'finale-fade' } : current
@@ -444,7 +444,7 @@ function App() {
 
   const handleStartSmartSet = (setlist) => {
     if (setlist.length < 2) {
-      setNotice('Import at least two tracks to start a continuous set.');
+      setNotice('Import at least two songs to start a concert mix.');
       return;
     }
     const trackIds = [...setlist.map((track) => track.id), setlist[0].id];
@@ -455,7 +455,7 @@ function App() {
       trackB: setlist[1],
       style: 'festival',
     });
-    void handleAutoMixPair(setlist[0], setlist[1], plan, { midpointTransition: true }).then((started) => {
+    void handleAutoMixPair(setlist[0], setlist[1], plan).then((started) => {
       if (!started) setSmartSet(null);
     });
   };
