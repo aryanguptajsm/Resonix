@@ -562,7 +562,7 @@ function App() {
     ) {
       setDeckLevels((current) => ({ ...current, [deckId]: smartSet.finalLevel ?? current[deckId] }));
       setSmartSet(null);
-      setNotice('Concert set complete. The finale ended cleanly.');
+      setNotice('Concert mix complete. The finale ended cleanly.');
     }
   };
 

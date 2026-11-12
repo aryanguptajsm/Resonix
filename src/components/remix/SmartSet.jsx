@@ -109,7 +109,7 @@ function SmartSet({ tracks, autoSet, onStart, onStop }) {
               <small>{track.artist} {track.bpm === '—' ? 'tempo unknown' : `${track.bpm} BPM`}</small>
             </span>
             <span className="smart-set__role">
-              {index === 0 ? 'OPEN' : index === setlist.length - 1 ? 'CLOSING' : 'NEXT'}
+              {index === 0 ? 'OPEN / RETURN' : 'NEXT'}
             </span>
           </li>
         ))}
