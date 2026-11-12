@@ -4,7 +4,6 @@ import Deck from './components/deck/Deck.jsx';
 import TopBar from './components/layout/TopBar.jsx';
 import Library from './components/library/Library.jsx';
 import Mixer from './components/mixer/Mixer.jsx';
-import RemixStudio from './components/remix/RemixStudio.jsx';
 import SmartSet from './components/remix/SmartSet.jsx';
 import { createLocalRemixPlan } from './audio/createLocalRemixPlan.js';
 import { getSavedLibraryTracks, saveLibraryTrack } from './audio/libraryStore.js';
@@ -164,7 +163,6 @@ function App() {
     const fromDeck = options.fromDeck || 'A';
     const toDeck = fromDeck === 'A' ? 'B' : 'A';
     const keepFromPlaying = Boolean(options.keepFromPlaying && deckTracks[fromDeck]?.id === trackA.id);
-    if (!options.isSmartSet) setSmartSet(null);
     setAutoMix(null);
     const [loadedFrom, loadedTo] = await Promise.all([
       keepFromPlaying ? Promise.resolve(true) : handleLoadToDeck(trackA, fromDeck),
@@ -207,6 +205,7 @@ function App() {
       trackAId: trackA.id,
       trackBId: trackB.id,
       transitionSeconds,
+      midpointTransition: Boolean(options.midpointTransition),
       startEq,
       startEffects,
     });
@@ -236,7 +235,9 @@ function App() {
     if (!Number.isFinite(duration) || duration <= 0) return;
 
     const blendDuration = Math.min(autoMix.transitionSeconds, duration * 0.4);
-    const blendStart = Math.max(0, duration - blendDuration);
+    const blendStart = autoMix.midpointTransition
+      ? duration * 0.5
+      : Math.max(0, duration - blendDuration);
     const buildStart = Math.max(0, blendStart - Math.min(8, blendDuration * 0.5));
     const currentTime = deckTimes[fromDeck];
 
@@ -375,7 +376,7 @@ function App() {
           }
           : current
       ));
-      setNotice(`Grand finale: ${finalTrack?.title || 'the final track'} will fade out at the end.`);
+      setNotice(`Closing song: ${finalTrack?.title || 'the opening song'} returns for the finale.`);
       return;
     }
 
@@ -395,7 +396,7 @@ function App() {
     void handleAutoMixPair(currentTrack, nextTrack, plan, {
       fromDeck: autoMix.toDeck || 'B',
       keepFromPlaying: true,
-      isSmartSet: true,
+      midpointTransition: true,
     }).then((started) => {
       if (!started) {
         setSmartSet(null);
@@ -446,16 +447,15 @@ function App() {
       setNotice('Import at least two tracks to start a continuous set.');
       return;
     }
-    if (autoMix) handleStopAutoMix();
-    const trackIds = setlist.map((track) => track.id);
-    setSmartSet({ trackIds, nextIndex: 2, stage: 'opening' });
+    const trackIds = [...setlist.map((track) => track.id), setlist[0].id];
+    setSmartSet({ trackIds, songCount: setlist.length, nextIndex: 2, stage: 'opening' });
     advancedSetMixId.current = null;
     const plan = createLocalRemixPlan({
       trackA: setlist[0],
       trackB: setlist[1],
       style: 'festival',
     });
-    void handleAutoMixPair(setlist[0], setlist[1], plan, { isSmartSet: true }).then((started) => {
+    void handleAutoMixPair(setlist[0], setlist[1], plan, { midpointTransition: true }).then((started) => {
       if (!started) setSmartSet(null);
     });
   };
@@ -677,17 +677,6 @@ function App() {
               onImportError={(error) => setNotice(`Could not import audio: ${error.message}`)}
             />
           </div>
-          <RemixStudio
-            tracks={tracks}
-            onLoadToDeck={handleLoadToDeck}
-            onAutoMixPair={handleAutoMixPair}
-            onStopAutoMix={handleStopAutoMix}
-            autoMixState={autoMix}
-            onImportTracks={() => {
-              handleNavigate('studio', 'library');
-              setNotice('Import a track from your library to start a remix.');
-            }}
-          />
           <SmartSet
             tracks={tracks}
             autoSet={smartSet}

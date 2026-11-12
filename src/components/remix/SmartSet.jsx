@@ -38,14 +38,14 @@ function SmartSet({ tracks, autoSet, onStart, onStop }) {
   return (
     <section className="smart-set" aria-labelledby="smart-set-title">
       <div className="smart-set__intro">
-        <span className="smart-set__eyebrow">LOCAL MINI AI · NO UPLOADS</span>
-        <h2 id="smart-set-title">Build a full concert set</h2>
+        <span className="smart-set__eyebrow">LOCAL CONCERT MIX · NO UPLOADS</span>
+        <h2 id="smart-set-title">Build a live concert mix</h2>
         <p>
-          Resonix orders every song in your library using available BPM and key data,
-          then blends each next track across the decks.
+          Resonix orders your songs by beat and key, blends into each next song around
+          the middle, then brings the opening song back for the finale.
         </p>
         <label className="smart-set__opener" htmlFor="smart-set-opener">
-          OPENING TRACK
+          OPENING SONG
           <select
             id="smart-set-opener"
             value={openingTrackId && tracks.some((track) => track.id === openingTrackId) ? openingTrackId : tracks[0]?.id || ''}
@@ -59,7 +59,7 @@ function SmartSet({ tracks, autoSet, onStart, onStop }) {
         </label>
         {autoSet ? (
           <button className="smart-set__button smart-set__button--stop" type="button" onClick={onStop}>
-            Stop concert set
+            Stop concert mix
           </button>
         ) : (
           <button
@@ -69,17 +69,17 @@ function SmartSet({ tracks, autoSet, onStart, onStop }) {
             disabled={setlist.length < 2}
           >
             <span aria-hidden="true">✦</span>
-            Start AI set · {setlist.length} tracks
+            Start concert mix · {setlist.length} songs
             <span aria-hidden="true">→</span>
           </button>
         )}
         {tracks.length < 2 && (
-          <small className="smart-set__hint">Import at least two songs to start a continuous set.</small>
+          <small className="smart-set__hint">Import at least two songs to start a concert mix.</small>
         )}
         {autoSet && (
           <>
             <small className="smart-set__hint" role="status">
-              {stageLabel} · {Math.min(autoSet.nextIndex, autoSet.trackIds.length)} of {autoSet.trackIds.length} tracks cued
+              {stageLabel} · {Math.min(autoSet.nextIndex, autoSet.songCount)} of {autoSet.songCount} songs cued
             </small>
             <ol className="smart-set__arc" aria-label="Concert mix progress">
               {['START', 'BUILD + DROP', 'MIDDLE', 'ENDING'].map((step, index) => (
@@ -100,7 +100,7 @@ function SmartSet({ tracks, autoSet, onStart, onStop }) {
         )}
       </div>
 
-      <ol className="smart-set__list" aria-label="AI concert set order">
+      <ol className="smart-set__list" aria-label="Concert mix song order">
         {setlist.map((track, index) => (
           <li key={track.id} className={index === 0 ? 'smart-set__track smart-set__track--opener' : 'smart-set__track'}>
             <span className="smart-set__number">{String(index + 1).padStart(2, '0')}</span>
@@ -108,11 +108,13 @@ function SmartSet({ tracks, autoSet, onStart, onStop }) {
               <strong>{track.title}</strong>
               <small>{track.artist} {track.bpm === '—' ? 'tempo unknown' : `${track.bpm} BPM`}</small>
             </span>
-            <span className="smart-set__role">{index === 0 ? 'OPEN' : 'NEXT'}</span>
+            <span className="smart-set__role">
+              {index === 0 ? 'OPEN' : index === setlist.length - 1 ? 'CLOSING' : 'NEXT'}
+            </span>
           </li>
         ))}
         {setlist.length === 0 && (
-          <li className="smart-set__empty">Your generated setlist will include every imported track.</li>
+          <li className="smart-set__empty">Your concert mix will include every imported song and return to the opener.</li>
         )}
       </ol>
     </section>
