@@ -106,7 +106,7 @@ function SmartSet({ tracks, autoSet, onStart, onStop }) {
             <span className="smart-set__number">{String(index + 1).padStart(2, '0')}</span>
             <span className="smart-set__track-info">
               <strong>{track.title}</strong>
-              <small>{track.artist} · {track.bpm === '—' ? 'tempo unknown' : `${track.bpm} BPM`}</small>
+              <small>{track.artist} {track.bpm === '—' ? 'tempo unknown' : `${track.bpm} BPM`}</small>
             </span>
             <span className="smart-set__role">{index === 0 ? 'OPEN' : 'NEXT'}</span>
           </li>
