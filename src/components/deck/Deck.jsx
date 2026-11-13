@@ -28,6 +28,7 @@ export default function Deck({
   syncTime = 0,
   syncPitch = 0,
   syncTempoRatio = 1,
+  syncBeatOffset = 0,
   automationCommand = null,
   tempoRatio = 1,
   onDurationChange,
@@ -98,7 +99,6 @@ export default function Deck({
     setPitchLocked(false);
     onTempoRatioChange?.(1);
     onPitchChange?.(0);
-    onTempoRatioChange?.(1);
     onPositionChange?.(0);
     waveformRequestRef.current += 1;
 
@@ -132,13 +132,13 @@ export default function Deck({
 
     const { context, fxFilter, delay, echoGain, reverbGain, flangerGain } = graph;
     const bpm = Number(track?.bpm);
-    const echoDelay = Number.isFinite(bpm) && bpm > 0 ? 60 / bpm : 0.375;
+    const echoDelay = Number.isFinite(bpm) && bpm > 0 ? 60 / (bpm * tempoRatio) : 0.375;
     updateAudioParam(context, fxFilter.frequency, effects.filter ? filterCutoff : context.sampleRate / 2);
     updateAudioParam(context, delay.delayTime, echoDelay);
     updateAudioParam(context, echoGain.gain, effects.echo ? 0.32 : 0);
     updateAudioParam(context, reverbGain.gain, effects.reverb ? 0.22 : 0);
     updateAudioParam(context, flangerGain.gain, effects.flanger ? 0.2 : 0);
-  }, [effects, filterCutoff, track?.bpm]);
+  }, [effects, filterCutoff, tempoRatio, track?.bpm]);
 
   useEffect(() => {
     const audio = audioRef.current;
@@ -378,6 +378,9 @@ export default function Deck({
     }
 
     const soundTouchNode = new SoundTouchNode({ context });
+    const playbackRate = tempoRatio * (1 + pitch / 100);
+    soundTouchNode.playbackRate.value = playbackRate;
+    soundTouchNode.pitch.value = pitchLocked ? 1 : 1 + pitch / 100;
     const source = context.createMediaElementSource(audioRef.current);
     const lowFilter = context.createBiquadFilter();
     const midFilter = context.createBiquadFilter();
@@ -546,8 +549,11 @@ export default function Deck({
     const matchedBpm = targetBpm * matchRatio;
     const sourceBeat = startAtBeginning
       ? 0
-      : Math.round((syncTime * sourceBpm * syncTempoRatio * (1 + syncPitch / 100)) / 60);
-    const targetBeatTime = (sourceBeat * 60) / targetBpm;
+      : Math.max(0, Math.round(
+        ((syncTime - syncBeatOffset) * sourceBpm * syncTempoRatio * (1 + syncPitch / 100)) / 60,
+      ));
+    const targetBeatOffset = Number(track?.analysis?.beatTimes?.[0]) || 0;
+    const targetBeatTime = targetBeatOffset + ((sourceBeat * 60) / targetBpm);
     seekTo(targetBeatTime);
     setError('');
     onSyncFeedback?.(
@@ -789,7 +795,9 @@ export default function Deck({
               className="deck__bpm-value"
               title={track?.bpmConfidence != null ? `Approximate analysis confidence: ${track.bpmConfidence}%` : undefined}
             >
-              {track?.bpm && track.bpm !== '—' ? `~${track.bpm}` : '—'}
+              {track?.bpm && track.bpm !== '—'
+                ? `~${(Number(track.bpm) * tempoRatio).toFixed(1)}`
+                : '—'}
             </span>
             <span className="deck__bpm-label">
               {waveformStatus === 'analyzing'
@@ -848,7 +856,9 @@ export default function Deck({
 
       <div className="deck__pitch-row">
         <label className="deck__seek-label" htmlFor={`seek-${deckId}`}>SEEK</label>
-        <div className="deck__pitch-indicator">{pitch > 0 ? `+${pitch}%` : `${pitch}%`}</div>
+        <div className="deck__pitch-indicator">
+          {pitchLocked ? `${tempoRatio.toFixed(2)}× LOCK` : pitch > 0 ? `+${pitch}%` : `${pitch}%`}
+        </div>
       </div>
       <input
         id={`seek-${deckId}`}
@@ -937,7 +947,9 @@ export default function Deck({
       </div>
 
       <div className="deck__pitch-wrapper">
-        <label htmlFor={`pitch-${deckId}`}>PITCH {pitch > 0 ? `+${pitch}%` : `${pitch}%`}</label>
+        <label htmlFor={`pitch-${deckId}`}>
+          {pitchLocked ? `KEY LOCK · ${tempoRatio.toFixed(2)}× TEMPO` : `PITCH ${pitch > 0 ? `+${pitch}%` : `${pitch}%`}`}
+        </label>
         <input
           id={`pitch-${deckId}`}
           type="range"

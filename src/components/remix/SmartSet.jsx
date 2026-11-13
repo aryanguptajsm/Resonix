@@ -6,6 +6,7 @@ function SmartSet({ tracks, autoSet, onStart, onStop }) {
   const [openingTrackId, setOpeningTrackId] = useState('');
   const [mixStyle, setMixStyle] = useState('festival');
   const [queueOrder, setQueueOrder] = useState([]);
+  const [draggedTrackId, setDraggedTrackId] = useState(null);
   const generatedSetlist = useMemo(() => {
     if (tracks.length < 2) return [];
     const openingId = tracks.some((track) => track.id === openingTrackId)
@@ -36,18 +37,28 @@ function SmartSet({ tracks, autoSet, onStart, onStop }) {
     if (setlist.length >= 2) onStart(setlist, mixStyle);
   };
 
+  const reorderQueue = (sourceTrackId, destinationTrackId) => {
+    if (autoSet || sourceTrackId === destinationTrackId) return;
+    const reorderedIds = setlist.map((track) => track.id);
+    const sourceIndex = reorderedIds.indexOf(sourceTrackId);
+    const destinationIndex = reorderedIds.indexOf(destinationTrackId);
+    if (sourceIndex <= 0 || destinationIndex <= 0) return;
+    reorderedIds.splice(sourceIndex, 1);
+    const insertIndex = sourceIndex < destinationIndex ? destinationIndex - 1 : destinationIndex;
+    reorderedIds.splice(insertIndex, 0, sourceTrackId);
+    setQueueOrder(reorderedIds);
+  };
+
   const moveTrack = (index, direction) => {
     const destination = index + direction;
-    if (autoSet || destination < 1 || destination >= setlist.length) return;
+    if (destination < 1 || destination >= setlist.length) return;
     const reorderedIds = setlist.map((track) => track.id);
     [reorderedIds[index], reorderedIds[destination]] = [reorderedIds[destination], reorderedIds[index]];
     setQueueOrder(reorderedIds);
   };
 
-  const currentTrackId = autoSet?.trackIds[Math.max(0, autoSet.nextIndex - 1)];
-  const nextTrackId = autoSet?.trackIds[autoSet.nextIndex];
-  const currentTrack = tracks.find((track) => track.id === currentTrackId);
-  const nextTrack = tracks.find((track) => track.id === nextTrackId);
+  const currentTrack = tracks.find((track) => track.id === autoSet?.currentTrackId);
+  const nextTrack = tracks.find((track) => track.id === autoSet?.nextTrackId);
   const activeStage = autoSet?.stage || 'ready';
   const stageIndex = {
     ready: -1,
@@ -164,7 +175,28 @@ function SmartSet({ tracks, autoSet, onStart, onStop }) {
 
       <ol className="smart-set__list" aria-label="Concert mix song order">
         {setlist.map((track, index) => (
-          <li key={track.id} className={index === 0 ? 'smart-set__track smart-set__track--opener' : 'smart-set__track'}>
+          <li
+            key={track.id}
+            className={`smart-set__track ${index === 0 ? 'smart-set__track--opener' : ''} ${draggedTrackId === track.id ? 'smart-set__track--dragging' : ''}`}
+            draggable={!autoSet && index > 0}
+            onDragStart={(event) => {
+              setDraggedTrackId(track.id);
+              event.dataTransfer.effectAllowed = 'move';
+              event.dataTransfer.setData('text/plain', track.id);
+            }}
+            onDragOver={(event) => {
+              if (!autoSet && index > 0 && draggedTrackId) {
+                event.preventDefault();
+                event.dataTransfer.dropEffect = 'move';
+              }
+            }}
+            onDrop={(event) => {
+              event.preventDefault();
+              reorderQueue(event.dataTransfer.getData('text/plain') || draggedTrackId, track.id);
+              setDraggedTrackId(null);
+            }}
+            onDragEnd={() => setDraggedTrackId(null)}
+          >
             <span className="smart-set__number">{String(index + 1).padStart(2, '0')}</span>
             <span className="smart-set__track-info">
               <strong>{track.title}</strong>

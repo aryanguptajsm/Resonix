@@ -29,3 +29,23 @@ test('analysis reports missing tempo for silence rather than inventing a beat gr
   assert.equal(analysis.beatTimes.length, 0);
   assert.equal(analysis.phraseBoundaries.length, 0);
 });
+
+test('tempo estimates stay within one BPM across synthetic beat rates', () => {
+  for (const expectedBpm of [72, 90, 128, 150]) {
+    const duration = 16;
+    const samples = new Float32Array(ANALYSIS_SAMPLE_RATE * duration);
+    const beatInterval = (60 * ANALYSIS_SAMPLE_RATE) / expectedBpm;
+    for (let beat = 0; beat * 60 / expectedBpm < duration; beat += 1) {
+      const start = Math.round(beat * beatInterval);
+      for (let offset = 0; offset < ANALYSIS_SAMPLE_RATE * 0.04; offset += 1) {
+        samples[start + offset] = Math.sin((2 * Math.PI * 880 * offset) / ANALYSIS_SAMPLE_RATE);
+      }
+    }
+
+    const analysis = analyzePcm(samples, duration);
+    assert.ok(
+      Math.abs(analysis.bpm - expectedBpm) <= 1,
+      `expected ${expectedBpm} BPM, got ${analysis.bpm}`,
+    );
+  }
+});

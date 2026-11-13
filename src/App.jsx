@@ -198,7 +198,9 @@ function App() {
       return false;
     }
 
-    const bpm = Number(trackA.bpm) * (deckTempoRatio[fromDeck] || 1);
+    const bpm = Number(trackA.bpm)
+      * (deckTempoRatio[fromDeck] || 1)
+      * (1 + (deckPitch[fromDeck] || 0) / 100);
     const transitionBars = [8, 16, 32].includes(plan?.transitionBars) ? plan.transitionBars : 16;
     const transitionSeconds = Number.isFinite(bpm) && bpm > 0
       ? (transitionBars * 4 * 60) / bpm
@@ -261,15 +263,21 @@ function App() {
     const duration = Number(outgoingTrack.duration);
     if (!Number.isFinite(duration) || duration <= 0) return;
 
-    const blendDuration = Math.min(autoMix.transitionSeconds, duration * 0.4);
+    const outgoingRate = (deckTempoRatio[fromDeck] || 1)
+      * (1 + (deckPitch[fromDeck] || 0) / 100);
+    const blendDuration = Math.min(autoMix.transitionSeconds, (duration * 0.4) / outgoingRate);
+    const blendMediaDuration = blendDuration * outgoingRate;
     const blendStart = Number.isFinite(autoMix.blendStart)
       ? autoMix.blendStart
       : getTransitionStartTime(
         outgoingTrack,
         duration * 0.5,
-        duration - blendDuration,
+        duration - blendMediaDuration,
       );
-    const buildStart = Math.max(0, blendStart - Math.min(8, blendDuration * 0.5));
+    const buildStart = Math.max(
+      0,
+      blendStart - (Math.min(8, blendDuration * 0.5) * outgoingRate),
+    );
     const currentTime = deckTimes[fromDeck];
 
     if (autoMix.phase === 'intro' && currentTime >= buildStart && currentTime < blendStart) {
@@ -305,9 +313,19 @@ function App() {
       },
     }));
     const incomingTrack = deckTracks[toDeck];
+    if (!incomingTrack?.id) {
+      setAutoMix(null);
+      setSmartSet(null);
+      setNotice('The next Auto-DJ song is unavailable. Re-add it to the Songs list to continue.');
+      return;
+    }
     const effectiveOutgoingTrack = {
       ...outgoingTrack,
-      bpm: String(Number(outgoingTrack.bpm) * (deckTempoRatio[fromDeck] || 1)),
+      bpm: String(
+        Number(outgoingTrack.bpm)
+        * (deckTempoRatio[fromDeck] || 1)
+        * (1 + (deckPitch[fromDeck] || 0) / 100),
+      ),
     };
     const updatedPlan = createLocalRemixPlan({
       trackA: effectiveOutgoingTrack,
@@ -331,7 +349,7 @@ function App() {
       { filter: true, filterCutoff: 1800 },
       { tempoRatio },
     );
-  }, [autoMix, deckTimes, deckTracks, deckTempoRatio]);
+  }, [autoMix, deckTimes, deckTracks, deckTempoRatio, deckPitch]);
 
   useEffect(() => {
     if (!smartSet || autoMix?.phase === 'finished') return;
@@ -359,7 +377,11 @@ function App() {
     const currentTime = deckTimes[fromDeck];
     const progress = Math.max(0, Math.min(
       1,
-      (currentTime - autoMix.blendStart) / autoMix.blendDuration,
+      (currentTime - autoMix.blendStart) / (
+        autoMix.blendDuration
+        * (deckTempoRatio[fromDeck] || 1)
+        * (1 + (deckPitch[fromDeck] || 0) / 100)
+      ),
     ));
     setCrossfader(crossfaderStart + (crossfaderEnd - crossfaderStart) * progress);
 
@@ -421,6 +443,8 @@ function App() {
           ? {
             ...current,
             stage: 'finale',
+            currentTrackId: autoMix.trackBId,
+            nextTrackId: null,
             finalDeck,
             finalTrackId: autoMix.trackBId,
             finalLevel: deckLevels[finalDeck],
@@ -441,7 +465,11 @@ function App() {
 
     const effectiveCurrentTrack = {
       ...currentTrack,
-      bpm: String(Number(currentTrack.bpm) * (deckTempoRatio[autoMix.toDeck || 'B'] || 1)),
+      bpm: String(
+        Number(currentTrack.bpm)
+        * (deckTempoRatio[autoMix.toDeck || 'B'] || 1)
+        * (1 + (deckPitch[autoMix.toDeck || 'B'] || 0) / 100),
+      ),
     };
     const plan = createLocalRemixPlan({
       trackA: effectiveCurrentTrack,
@@ -458,10 +486,17 @@ function App() {
         return;
       }
       setSmartSet((current) => (
-        current ? { ...current, nextIndex: current.nextIndex + 1 } : current
+        current
+          ? {
+            ...current,
+            currentTrackId: autoMix.trackBId,
+            nextTrackId: nextTrack.id,
+            nextIndex: current.nextIndex + 1,
+          }
+          : current
       ));
     });
-  }, [autoMix, smartSet, tracks, deckLevels, deckTempoRatio]);
+  }, [autoMix, smartSet, tracks, deckLevels, deckTempoRatio, deckPitch]);
 
   useEffect(() => {
     if (!['finale', 'finale-fade'].includes(smartSet?.stage) || !smartSet.finalDeck || !smartSet.finalTrackId) return;
@@ -509,6 +544,8 @@ function App() {
       nextIndex: 2,
       stage: 'opening',
       style,
+      currentTrackId: setlist[0].id,
+      nextTrackId: setlist[1].id,
     });
     advancedSetMixId.current = null;
     const plan = createLocalRemixPlan({
@@ -626,6 +663,12 @@ function App() {
   const handleSyncFeedback = (message) => setNotice(message);
 
   const handleTrackEnded = (deckId, trackId) => {
+    if (autoMix?.phase === 'blending' && autoMix.fromDeck === deckId && autoMix.trackAId === trackId) {
+      setDeckTimes((current) => ({
+        ...current,
+        [deckId]: Number(deckTracks[deckId]?.duration) || current[deckId],
+      }));
+    }
     if (
       ['finale', 'finale-fade'].includes(smartSet?.stage)
       && smartSet.finalDeck === deckId
@@ -680,6 +723,7 @@ function App() {
               syncTime={deckTimes.B}
               syncPitch={deckPitch.B}
               syncTempoRatio={deckTempoRatio.B}
+              syncBeatOffset={deckTracks.B?.analysis?.beatTimes?.[0] || 0}
               tempoRatio={deckTempoRatio.A}
               automationCommand={deckAutomation.A}
               onDurationChange={handleDurationChange}
@@ -709,6 +753,7 @@ function App() {
               syncTime={deckTimes.A}
               syncPitch={deckPitch.A}
               syncTempoRatio={deckTempoRatio.A}
+              syncBeatOffset={deckTracks.A?.analysis?.beatTimes?.[0] || 0}
               tempoRatio={deckTempoRatio.B}
               automationCommand={deckAutomation.B}
               onDurationChange={handleDurationChange}

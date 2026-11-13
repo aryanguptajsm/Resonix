@@ -215,6 +215,14 @@
   background: rgba(44, 105, 108, 0.14);
 }
 
+.smart-set__track[draggable="true"] {
+  cursor: grab;
+}
+
+.smart-set__track--dragging {
+  opacity: 0.55;
+}
+
 .smart-set__number {
   color: #81d8d0;
   font-family: var(--font-mono);

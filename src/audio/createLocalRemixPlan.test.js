@@ -20,6 +20,12 @@ test('tempo matching accounts for half-time and double-time counts', () => {
   assert.equal(findTempoMatch(80, 160)?.difference, 0);
   assert.equal(findTempoMatch(80, 160)?.secondTempo, 80);
   assert.equal(findTempoMatch(80, 120), null);
+  const plan = createLocalRemixPlan({
+    trackA: { id: 'a', title: 'A', bpm: '80', key: 'C major' },
+    trackB: { id: 'b', title: 'B', bpm: '160', key: 'C major' },
+    style: 'festival',
+  });
+  assert.equal(plan.tempoRatio, 0.5);
 });
 
 test('transition planning shortens tempos that cannot be matched safely', () => {
