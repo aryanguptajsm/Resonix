@@ -33,5 +33,6 @@ test('transition planning shortens tempos that cannot be matched safely', () => 
 
 test('transition timing uses the next available phrase boundary', () => {
   const track = { analysis: { phraseBoundaries: [0, 32, 64, 96] } };
-  assert.equal(getTransitionStartTime(track, 34, 60),  -1 + 35);
+  assert.equal(getTransitionStartTime(track, 30, 60), 32);
+  assert.equal(getTransitionStartTime(track, 34, 60), 34);
 });
