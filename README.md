@@ -4,6 +4,8 @@ RESONIX is a browser-based DJ studio. Imported audio files and the local DJ plan
 
 ## Local music library
 
+Open **Songs** from the top navigation and choose **Upload song** to add audio from your device. You can select multiple audio files at once; imported songs appear in the list and can be loaded onto either deck.
+
 In browsers that support the File System Access API, importing tracks saves browser-managed file access handles in IndexedDB and remembers the tracks assigned to each deck. After restarting, the browser may ask you to grant access again. Your music stays on your device; the app does not save or expose raw filesystem paths.
 
 Browsers without persistent file access can still import and play tracks, but those tracks must be imported again after restarting the app.

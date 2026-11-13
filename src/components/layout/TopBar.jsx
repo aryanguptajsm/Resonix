@@ -34,9 +34,9 @@ function TopBar({ status, activePage, onNavigate }) {
           <button
             className="topbar__nav-link"
             type="button"
-            onClick={() => onNavigate?.('studio', 'library')}
+            onClick={() => onNavigate?.('studio', 'songs')}
           >
-            Library
+            Songs
           </button>
           <button
             className="topbar__nav-link"

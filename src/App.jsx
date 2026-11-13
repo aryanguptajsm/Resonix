@@ -669,14 +669,12 @@ function App() {
               onCrossfaderChange={setCrossfader}
             />
           </main>
-          <div id="library">
-            <Library
-              tracks={tracks}
-              onImport={handleImport}
-              onLoadToDeck={handleLoadToDeck}
-              onImportError={(error) => setNotice(`Could not import audio: ${error.message}`)}
-            />
-          </div>
+          <Library
+            tracks={tracks}
+            onImport={handleImport}
+            onLoadToDeck={handleLoadToDeck}
+            onImportError={(error) => setNotice(`Could not import audio: ${error.message}`)}
+          />
           <SmartSet
             tracks={tracks}
             autoSet={smartSet}

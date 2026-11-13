@@ -44,12 +44,12 @@ function Library({ tracks, onImport, onLoadToDeck, onImportError }) {
   };
 
   return (
-    <section className="library">
+    <section className="library" id="songs" aria-labelledby="songs-title">
       <div className="library__header">
         <div className="library__heading">
           <div>
             <span className="library__eyebrow">YOUR COLLECTION</span>
-            <h2>Music library</h2>
+            <h2 id="songs-title">Songs</h2>
           </div>
           <span className="library__track-count">{tracks.length} tracks</span>
         </div>
@@ -86,7 +86,7 @@ function Library({ tracks, onImport, onLoadToDeck, onImportError }) {
             onClick={openAudioPicker}
           >
             <span aria-hidden="true">+</span>
-            Import tracks
+            Upload song
           </button>
         </div>
       </div>
