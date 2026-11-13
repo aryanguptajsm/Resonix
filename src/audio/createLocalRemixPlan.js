@@ -58,7 +58,7 @@ function tempoOptions(bpm) {
     .filter((value, index, values) => values.indexOf(value) === index);
 }
 
-function findTempoMatch(firstBpm, secondBpm) {
+export function findTempoMatch(firstBpm, secondBpm) {
   let bestMatch = null;
   for (const firstTempo of tempoOptions(firstBpm)) {
     for (const secondTempo of tempoOptions(secondBpm)) {
@@ -72,7 +72,7 @@ function findTempoMatch(firstBpm, secondBpm) {
   return bestMatch?.difference <= 0.04 ? bestMatch : null;
 }
 
-function toCamelot(value) {
+export function toCamelot(value) {
   const key = String(value ?? '').trim().toUpperCase();
   const camelotMatch = key.match(/^(1[0-2]|[1-9])\s*([AB])$/);
   if (camelotMatch) return { number: Number(camelotMatch[1]), mode: camelotMatch[2] };
@@ -86,6 +86,34 @@ function toCamelot(value) {
   return mappedMatch ? { number: Number(mappedMatch[1]), mode: mappedMatch[2] } : null;
 }
 
+export function isCamelotCompatible(firstKey, secondKey) {
+  const first = toCamelot(firstKey);
+  const second = toCamelot(secondKey);
+  if (!first || !second) return false;
+  const ringDistance = Math.abs(first.number - second.number);
+  const adjacent = Math.min(ringDistance, 12 - ringDistance) === 1;
+  return first.number === second.number || (first.mode === second.mode && adjacent);
+}
+
+export function getTransitionStartTime(track, nominalStart, latestStart) {
+  const phraseBoundaries = track?.analysis?.phraseBoundaries;
+  if (Array.isArray(phraseBoundaries) && phraseBoundaries.length > 0) {
+    const nextBoundary = phraseBoundaries.find((time) => (
+      Number.isFinite(time) && time >= nominalStart && time <= latestStart
+    ));
+    if (nextBoundary != null) return nextBoundary;
+    return nominalStart;
+  }
+
+  const bpm = parseBpm(track?.bpm);
+  if (!bpm) return nominalStart;
+  const phraseDuration = (16 * 60) / bpm;
+  const firstBeat = Number(track?.analysis?.beatTimes?.[0]) || 0;
+  const boundary = firstBeat
+    + (Math.ceil((nominalStart - firstBeat) / phraseDuration) * phraseDuration);
+  return boundary <= latestStart ? boundary : nominalStart;
+}
+
 function describeKeyRelationship(firstKey, secondKey) {
   const firstCamelot = toCamelot(firstKey);
   const secondCamelot = toCamelot(secondKey);
@@ -93,12 +121,7 @@ function describeKeyRelationship(firstKey, secondKey) {
     return 'Key data is missing or unrecognized; keep the blend percussion-led and trust your ears.';
   }
 
-  const ringDistance = Math.abs(firstCamelot.number - secondCamelot.number);
-  const adjacent = Math.min(ringDistance, 12 - ringDistance) === 1;
-  const compatible = firstCamelot.mode === secondCamelot.mode
-    ? firstCamelot.number === secondCamelot.number || adjacent
-    : firstCamelot.number === secondCamelot.number;
-  if (compatible) {
+  if (isCamelotCompatible(firstKey, secondKey)) {
     return `Keys ${firstCamelot.number}${firstCamelot.mode} and ${secondCamelot.number}${secondCamelot.mode} are close on the Camelot wheel; confirm by ear.`;
   }
   return `Keys ${firstCamelot.number}${firstCamelot.mode} and ${secondCamelot.number}${secondCamelot.mode} are not close on the Camelot wheel; favor a short percussion-led handoff.`;

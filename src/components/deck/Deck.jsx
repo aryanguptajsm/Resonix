@@ -669,11 +669,16 @@ export default function Deck({
     setWaveformStatus('analyzing');
     setWaveformError('');
     analyzeAudioFile(track.file, loadedDuration)
-      .then(({ peaks, bpm, confidence }) => {
+      .then((analysis) => {
         if (requestId !== waveformRequestRef.current) return;
+        const { peaks, version, cacheError, ...trackAnalysis } = analysis;
         setWaveformPeaks(peaks);
         setWaveformStatus('ready');
-        onBpmChange?.(track.id, bpm, confidence);
+        onBpmChange?.(track.id, analysis.bpm, analysis.bpmConfidence, {
+          ...trackAnalysis,
+          ...(version ? { version } : {}),
+          ...(cacheError ? { cacheError } : {}),
+        });
       })
       .catch((analysisError) => {
         if (requestId !== waveformRequestRef.current) return;

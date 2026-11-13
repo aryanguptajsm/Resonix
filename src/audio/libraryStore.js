@@ -1,6 +1,7 @@
 const DATABASE_NAME = 'resonix-library';
-const DATABASE_VERSION = 1;
+const DATABASE_VERSION = 2;
 const STORE_NAME = 'tracks';
+const ANALYSIS_STORE_NAME = 'analysis';
 
 function openLibraryDatabase() {
   return new Promise((resolve, reject) => {
@@ -10,6 +11,9 @@ function openLibraryDatabase() {
       const database = request.result;
       if (!database.objectStoreNames.contains(STORE_NAME)) {
         database.createObjectStore(STORE_NAME, { keyPath: 'id' });
+      }
+      if (!database.objectStoreNames.contains(ANALYSIS_STORE_NAME)) {
+        database.createObjectStore(ANALYSIS_STORE_NAME, { keyPath: 'hash' });
       }
     };
     request.onsuccess = () => resolve(request.result);
@@ -53,6 +57,41 @@ export async function getSavedLibraryTracks() {
     transaction.onerror = () => {
       database.close();
       reject(transaction.error || new Error('Could not read the local music library.'));
+    };
+  });
+}
+
+export async function getSavedTrackAnalysis(hash) {
+  const database = await openLibraryDatabase();
+  return new Promise((resolve, reject) => {
+    const transaction = database.transaction(ANALYSIS_STORE_NAME, 'readonly');
+    const request = transaction.objectStore(ANALYSIS_STORE_NAME).get(hash);
+    request.onsuccess = () => resolve(request.result?.analysis || null);
+    request.onerror = () => reject(request.error || new Error('Could not read the saved audio analysis.'));
+    transaction.oncomplete = () => database.close();
+    transaction.onerror = () => {
+      database.close();
+      reject(transaction.error || new Error('Could not read the saved audio analysis.'));
+    };
+  });
+}
+
+export async function saveTrackAnalysis(hash, analysis) {
+  const database = await openLibraryDatabase();
+  return new Promise((resolve, reject) => {
+    const transaction = database.transaction(ANALYSIS_STORE_NAME, 'readwrite');
+    transaction.objectStore(ANALYSIS_STORE_NAME).put({ hash, analysis });
+    transaction.oncomplete = () => {
+      database.close();
+      resolve();
+    };
+    transaction.onerror = () => {
+      database.close();
+      reject(transaction.error || new Error('Could not save the audio analysis.'));
+    };
+    transaction.onabort = () => {
+      database.close();
+      reject(transaction.error || new Error('Saving the audio analysis was interrupted.'));
     };
   });
 }

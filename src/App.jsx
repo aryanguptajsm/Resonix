@@ -540,16 +540,26 @@ function App() {
     }));
   };
 
-  const handleBpmChange = (trackId, bpm, confidence) => {
+  const handleBpmChange = (trackId, bpm, confidence, analysis = null) => {
     const bpmValue = bpm ? String(bpm) : '—';
+    const { cacheError, ...analysisData } = analysis || {};
     const updateTrack = (track) => (
-      track?.id === trackId ? { ...track, bpm: bpmValue, bpmConfidence: confidence } : track
+      track?.id === trackId
+        ? {
+          ...track,
+          bpm: bpmValue,
+          bpmConfidence: confidence,
+          key: analysisData.key || '—',
+          analysis: analysisData,
+        }
+        : track
     );
     setTracks((currentTracks) => currentTracks.map(updateTrack));
     setDeckTracks((currentDecks) => ({
       A: updateTrack(currentDecks.A),
       B: updateTrack(currentDecks.B),
     }));
+    if (cacheError) setNotice(`Audio was analyzed but could not be cached: ${cacheError}`);
   };
 
   const handleSyncFeedback = (message) => setNotice(message);
