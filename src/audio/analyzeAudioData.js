@@ -37,7 +37,7 @@ function findBestPeriod(onset) {
   if (onset.length < BPM_FRAME_RATE * 5) return null;
 
   const minimumLag = Math.floor((60 * BPM_FRAME_RATE) / 180);
-  const maximumLag = Math.ceil((60 * BPM_FRAME_RATE) / 60);
+  const maximumLag = Math.ceil((60 * BPM_FRAME_RATE) / 70);
   const scores = new Float64Array(maximumLag + 1);
   let bestLag = 0;
   let bestScore = 0;
