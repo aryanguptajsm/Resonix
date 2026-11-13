@@ -436,7 +436,9 @@ export default function Deck({
     }
     convolver.buffer = impulse;
 
-    audioRef.current.preservesPitch = false;
+    if ('preservesPitch' in audioRef.current) audioRef.current.preservesPitch = false;
+    if ('webkitPreservesPitch' in audioRef.current) audioRef.current.webkitPreservesPitch = false;
+    if ('mozPreservesPitch' in audioRef.current) audioRef.current.mozPreservesPitch = false;
     source.connect(soundTouchNode);
     soundTouchNode.connect(lowFilter);
     lowFilter.connect(midFilter);
@@ -652,10 +654,10 @@ export default function Deck({
     event.preventDefault();
   };
 
-  const handlePlay = async () => {
+  const handlePlay = async (existingGraph = null) => {
     if (!track?.url || !audioRef.current) return;
     try {
-      const graph = await createAudioGraph();
+      const graph = existingGraph || await createAudioGraph();
       await graph.context.resume();
       await audioRef.current.play();
       setError('');

@@ -305,16 +305,33 @@ function App() {
       },
     }));
     const incomingTrack = deckTracks[toDeck];
-    const canSync = Number.isFinite(autoMix.tempoRatio);
+    const effectiveOutgoingTrack = {
+      ...outgoingTrack,
+      bpm: String(Number(outgoingTrack.bpm) * (deckTempoRatio[fromDeck] || 1)),
+    };
+    const updatedPlan = createLocalRemixPlan({
+      trackA: effectiveOutgoingTrack,
+      trackB: incomingTrack,
+      style: autoMix.style || 'festival',
+    });
+    const tempoRatio = Number.isFinite(autoMix.tempoRatio)
+      ? autoMix.tempoRatio
+      : updatedPlan.tempoRatio;
+    const canSync = Number.isFinite(tempoRatio);
+    if (Number.isFinite(tempoRatio) && !Number.isFinite(autoMix.tempoRatio)) {
+      setAutoMix((current) => (
+        current?.id === autoMix.id ? { ...current, tempoRatio } : current
+      ));
+    }
     sendDeckCommand(
       toDeck,
       canSync ? 'sync-play' : 'restart-play',
       incomingTrack.id,
       autoMix.id,
       { filter: true, filterCutoff: 1800 },
-      { tempoRatio: autoMix.tempoRatio },
+      { tempoRatio },
     );
-  }, [autoMix, deckTimes, deckTracks]);
+  }, [autoMix, deckTimes, deckTracks, deckTempoRatio]);
 
   useEffect(() => {
     if (!smartSet || autoMix?.phase === 'finished') return;

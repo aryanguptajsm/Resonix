@@ -105,7 +105,7 @@ function SmartSet({ tracks, autoSet, onStart, onStop }) {
         </label>
         {autoSet ? (
           <button className="smart-set__button smart-set__button--stop" type="button" onClick={onStop}>
-            Stop concert mix
+            Stop Auto-DJ
           </button>
         ) : (
           <button
@@ -115,7 +115,7 @@ function SmartSet({ tracks, autoSet, onStart, onStop }) {
             disabled={setlist.length < 2}
           >
             <span aria-hidden="true">✦</span>
-            Start concert mix · {setlist.length} songs
+            Start Auto-DJ · {setlist.length} songs
             <span aria-hidden="true">→</span>
           </button>
         )}

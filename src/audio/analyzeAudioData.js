@@ -95,13 +95,12 @@ function findBestPeriod(onset) {
   return { period, confidence, phase: phase / BPM_FRAME_RATE };
 }
 
-function goertzelPower(samples, start, size, frequency) {
+function goertzelPower(samples, start, window, frequency) {
   const coefficient = 2 * Math.cos((2 * Math.PI * frequency) / ANALYSIS_SAMPLE_RATE);
   let previous = 0;
   let previousPrevious = 0;
-  for (let index = 0; index < size; index += 1) {
-    const window = 0.5 - (0.5 * Math.cos((2 * Math.PI * index) / (size - 1)));
-    const current = (samples[start + index] || 0) * window
+  for (let index = 0; index < window.length; index += 1) {
+    const current = (samples[start + index] || 0) * window[index]
       + (coefficient * previous)
       - previousPrevious;
     previousPrevious = previous;
@@ -130,6 +129,10 @@ function correlation(first, second) {
 
 function detectKey(samples) {
   const windowSize = 2048;
+  const hannWindow = new Float32Array(windowSize);
+  for (let index = 0; index < windowSize; index += 1) {
+    hannWindow[index] = 0.5 - (0.5 * Math.cos((2 * Math.PI * index) / (windowSize - 1)));
+  }
   const windowStride = Math.round(ANALYSIS_SAMPLE_RATE * 0.8);
   const maximumStart = Math.min(samples.length - windowSize, ANALYSIS_SAMPLE_RATE * 45);
   if (maximumStart < 0) return { key: null, confidence: 0 };
@@ -140,11 +143,12 @@ function detectKey(samples) {
     for (let midi = 36; midi <= 84; midi += 1) {
       const frequency = 440 * (2 ** ((midi - 69) / 12));
       if (frequency >= ANALYSIS_SAMPLE_RATE / 2) continue;
-      chroma[midi % 12] += Math.sqrt(goertzelPower(samples, start, windowSize, frequency));
+      chroma[midi % 12] += Math.sqrt(goertzelPower(samples, start, hannWindow, frequency));
     }
     windowCount += 1;
   }
   if (!windowCount) return { key: null, confidence: 0 };
+  if (chroma.every((value) => value === 0)) return { key: null, confidence: 0 };
 
   let best = { score: -Infinity, key: null };
   let secondBest = -Infinity;

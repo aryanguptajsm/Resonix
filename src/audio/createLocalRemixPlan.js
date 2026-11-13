@@ -60,19 +60,30 @@ function tempoOptions(bpm) {
 
 export function findTempoMatch(firstBpm, secondBpm) {
   let bestMatch = null;
-  let bestAdjustment = Infinity;
+  let bestFirstAdjustment = Infinity;
+  let bestSecondAdjustment = Infinity;
   for (const firstTempo of tempoOptions(firstBpm)) {
     for (const secondTempo of tempoOptions(secondBpm)) {
       const difference = Math.abs(firstTempo - secondTempo) / ((firstTempo + secondTempo) / 2);
-      const adjustment = Math.abs(Math.log2(firstTempo / firstBpm))
-        + Math.abs(Math.log2(secondTempo / secondBpm));
+      const firstAdjustment = Math.abs(Math.log2(firstTempo / firstBpm));
+      const secondAdjustment = Math.abs(Math.log2(secondTempo / secondBpm));
       if (
         !bestMatch
         || difference < bestMatch.difference
-        || (difference === bestMatch.difference && adjustment < bestAdjustment)
+        || (
+          difference === bestMatch.difference
+          && (
+            firstAdjustment < bestFirstAdjustment
+            || (
+              firstAdjustment === bestFirstAdjustment
+              && secondAdjustment < bestSecondAdjustment
+            )
+          )
+        )
       ) {
         bestMatch = { firstTempo, secondTempo, difference };
-        bestAdjustment = adjustment;
+        bestFirstAdjustment = firstAdjustment;
+        bestSecondAdjustment = secondAdjustment;
       }
     }
   }

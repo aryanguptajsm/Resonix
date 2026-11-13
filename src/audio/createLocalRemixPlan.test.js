@@ -18,6 +18,7 @@ test('Camelot conversion and compatibility include adjacent and relative keys', 
 
 test('tempo matching accounts for half-time and double-time counts', () => {
   assert.equal(findTempoMatch(80, 160)?.difference, 0);
+  assert.equal(findTempoMatch(80, 160)?.secondTempo, 80);
   assert.equal(findTempoMatch(80, 120), null);
 });
 

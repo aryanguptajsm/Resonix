@@ -10,9 +10,11 @@ In browsers that support the File System Access API, importing tracks saves brow
 
 Browsers without persistent file access can still import and play tracks, but those tracks must be imported again after restarting the app.
 
-## Concert mix
+## Auto-DJ / Concert mix
 
-The local set builder orders every song in your library using available BPM and key metadata, then blends into each next song around the outgoing song's midpoint. When BPM values are available, the incoming deck matches tempo and starts on its first beat; beat alignment assumes the first beat is at the start of the audio and BPM detection is approximate. Songs without BPM data are still included, but need an ear-checked handoff. The mix returns to the selected opening song for its finale and fades out at the end. This is a lightweight local recommendation algorithm, not a trained neural model; it does not upload audio or train on your files. Keep the browser tab open while the mix is playing.
+Open **Concert mix**, choose an opening song and a mix style, then reorder the queue and select **Start Auto-DJ**. Resonix analyzes local audio in a Web Worker, caches results in IndexedDB, and uses a pitch-preserving AudioWorklet for close tempo matches. The UI shows the current and next songs and transition progress; **Stop Auto-DJ** stops the set. All analysis and playback remain in your browser.
+
+Tempo, key and phrase analysis are approximate. Transitions use the estimated phrase grid, which assumes the first detected beat is the song's first beat. Timing is not guaranteed to land within 10 ms, and the beat/key accuracy target has not been validated against a licensed test corpus. Vocal overlap detection, mashups, recording and a shared master limiter are not implemented. See [docs/autodj.md](./docs/autodj.md) for architecture, usage and known limits. Keep the browser tab open while the set is playing.
 
 The mixer’s **Balanced Bass** button applies a gentle -2 dB low-EQ trim to both decks; use EQ Reset for a flat response. Speaker, room, and track mastering vary, so no single EQ preset can guarantee perfect bass on every system. The set transition automates crossfader volume, EQ bass handoff, filter opening, reverb, and outgoing echo. A peak guard helps control brief output peaks but is not a substitute for safe speaker levels.
 

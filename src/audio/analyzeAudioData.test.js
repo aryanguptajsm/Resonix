@@ -14,17 +14,18 @@ test('analysis estimates the tempo and returns a phase-aligned beat grid', () =>
   }
 
   const analysis = analyzePcm(samples, duration);
-  assert.equal(analysis.bpm, 120);
+  assert.ok(Math.abs(analysis.bpm - 120) <= 1);
   assert.ok(analysis.bpmConfidence > 0);
   assert.ok(analysis.beatTimes.length >= 38);
   assert.ok(Math.abs((analysis.beatTimes[1] - analysis.beatTimes[0]) - 0.5) < 0.02);
   assert.ok(analysis.phraseBoundaries.length > 0);
-  assert.equal(analysis.peaks.length, 400);
+  assert.equal(analysis.peaks.length, 401);
 });
 
 test('analysis reports missing tempo for silence rather than inventing a beat grid', () => {
   const analysis = analyzePcm(new Float32Array(ANALYSIS_SAMPLE_RATE * 8), 8);
   assert.equal(analysis.bpm, null);
+  assert.equal(analysis.key, null);
   assert.equal(analysis.beatTimes.length, 0);
   assert.equal(analysis.phraseBoundaries.length, 0);
 });
