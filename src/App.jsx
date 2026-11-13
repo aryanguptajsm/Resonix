@@ -41,6 +41,7 @@ function App() {
     B: { filter: false, echo: false, reverb: false, flanger: false },
   });
   const [deckPitch, setDeckPitch] = useState({ A: 0, B: 0 });
+  const [deckTempoRatio, setDeckTempoRatio] = useState({ A: 1, B: 1 });
   const [deckTimes, setDeckTimes] = useState({ A: 0, B: 0 });
   const [deckAutomation, setDeckAutomation] = useState({ A: null, B: null });
   const [autoMix, setAutoMix] = useState(null);
@@ -54,11 +55,24 @@ function App() {
   const automationSequence = useRef(0);
   const advancedSetMixId = useRef(null);
 
-  const sendDeckCommand = (deckId, action, trackId, runId = 'manual', effects = {}) => {
+  const sendDeckCommand = (
+    deckId,
+    action,
+    trackId,
+    runId = 'manual',
+    effects = {},
+    commandOptions = {},
+  ) => {
     automationSequence.current += 1;
     setDeckAutomation((current) => ({
       ...current,
-      [deckId]: { id: `${runId}-${deckId}-${automationSequence.current}`, action, trackId, effects },
+      [deckId]: {
+        id: `${runId}-${deckId}-${automationSequence.current}`,
+        action,
+        trackId,
+        effects,
+        ...commandOptions,
+      },
     }));
   };
 
@@ -67,6 +81,12 @@ function App() {
       ...current,
       [deckId]: typeof update === 'function' ? update(current[deckId]) : update,
     }));
+  };
+
+  const handleTempoRatioChange = (deckId, ratio) => {
+    setDeckTempoRatio((current) => (
+      current[deckId] === ratio ? current : { ...current, [deckId]: ratio }
+    ));
   };
 
   useEffect(() => {
@@ -178,7 +198,7 @@ function App() {
       return false;
     }
 
-    const bpm = Number(trackA.bpm);
+    const bpm = Number(trackA.bpm) * (deckTempoRatio[fromDeck] || 1);
     const transitionBars = [8, 16, 32].includes(plan?.transitionBars) ? plan.transitionBars : 16;
     const transitionSeconds = Number.isFinite(bpm) && bpm > 0
       ? (transitionBars * 4 * 60) / bpm
@@ -209,6 +229,7 @@ function App() {
       trackAId: trackA.id,
       trackBId: trackB.id,
       transitionSeconds,
+      tempoRatio: plan?.tempoRatio,
       startEq,
       startEffects,
       style,
@@ -227,6 +248,7 @@ function App() {
     setAutoMix(null);
     setSmartSet(null);
     setCrossfader(0);
+    setDeckTempoRatio({ A: 1, B: 1 });
     setNotice('Concert mix stopped.');
   };
 
@@ -283,13 +305,14 @@ function App() {
       },
     }));
     const incomingTrack = deckTracks[toDeck];
-    const canSync = Number(outgoingTrack.bpm) > 0 && Number(incomingTrack?.bpm) > 0;
+    const canSync = Number.isFinite(autoMix.tempoRatio);
     sendDeckCommand(
       toDeck,
       canSync ? 'sync-play' : 'restart-play',
       incomingTrack.id,
       autoMix.id,
       { filter: true, filterCutoff: 1800 },
+      { tempoRatio: autoMix.tempoRatio },
     );
   }, [autoMix, deckTimes, deckTracks]);
 
@@ -399,8 +422,12 @@ function App() {
       return;
     }
 
+    const effectiveCurrentTrack = {
+      ...currentTrack,
+      bpm: String(Number(currentTrack.bpm) * (deckTempoRatio[autoMix.toDeck || 'B'] || 1)),
+    };
     const plan = createLocalRemixPlan({
-      trackA: currentTrack,
+      trackA: effectiveCurrentTrack,
       trackB: nextTrack,
       style: smartSet.style || 'festival',
     });
@@ -417,7 +444,7 @@ function App() {
         current ? { ...current, nextIndex: current.nextIndex + 1 } : current
       ));
     });
-  }, [autoMix, smartSet, tracks, deckLevels]);
+  }, [autoMix, smartSet, tracks, deckLevels, deckTempoRatio]);
 
   useEffect(() => {
     if (!['finale', 'finale-fade'].includes(smartSet?.stage) || !smartSet.finalDeck || !smartSet.finalTrackId) return;
@@ -635,11 +662,14 @@ function App() {
               syncBpm={deckTracks.B?.bpm}
               syncTime={deckTimes.B}
               syncPitch={deckPitch.B}
+              syncTempoRatio={deckTempoRatio.B}
+              tempoRatio={deckTempoRatio.A}
               automationCommand={deckAutomation.A}
               onDurationChange={handleDurationChange}
               onBpmChange={handleBpmChange}
               onPositionChange={(time) => setDeckTimes((current) => ({ ...current, A: time }))}
               onPitchChange={(value) => setDeckPitch((current) => ({ ...current, A: value }))}
+              onTempoRatioChange={(value) => handleTempoRatioChange('A', value)}
               onSyncFeedback={handleSyncFeedback}
               onEqChange={(band, value) => setDeckEq((current) => ({
                 ...current,
@@ -661,11 +691,14 @@ function App() {
               syncBpm={deckTracks.A?.bpm}
               syncTime={deckTimes.A}
               syncPitch={deckPitch.A}
+              syncTempoRatio={deckTempoRatio.A}
+              tempoRatio={deckTempoRatio.B}
               automationCommand={deckAutomation.B}
               onDurationChange={handleDurationChange}
               onBpmChange={handleBpmChange}
               onPositionChange={(time) => setDeckTimes((current) => ({ ...current, B: time }))}
               onPitchChange={(value) => setDeckPitch((current) => ({ ...current, B: value }))}
+              onTempoRatioChange={(value) => handleTempoRatioChange('B', value)}
               onSyncFeedback={handleSyncFeedback}
               onEqChange={(band, value) => setDeckEq((current) => ({
                 ...current,

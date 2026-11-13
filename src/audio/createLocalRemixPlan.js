@@ -60,11 +60,19 @@ function tempoOptions(bpm) {
 
 export function findTempoMatch(firstBpm, secondBpm) {
   let bestMatch = null;
+  let bestAdjustment = Infinity;
   for (const firstTempo of tempoOptions(firstBpm)) {
     for (const secondTempo of tempoOptions(secondBpm)) {
       const difference = Math.abs(firstTempo - secondTempo) / ((firstTempo + secondTempo) / 2);
-      if (!bestMatch || difference < bestMatch.difference) {
+      const adjustment = Math.abs(Math.log2(firstTempo / firstBpm))
+        + Math.abs(Math.log2(secondTempo / secondBpm));
+      if (
+        !bestMatch
+        || difference < bestMatch.difference
+        || (difference === bestMatch.difference && adjustment < bestAdjustment)
+      ) {
         bestMatch = { firstTempo, secondTempo, difference };
+        bestAdjustment = adjustment;
       }
     }
   }
@@ -232,6 +240,7 @@ export function createLocalRemixPlan({ trackA, trackB, style, prompt = '' }) {
       : stylePlan.transition,
     energyArc: stylePlan.arc,
     targetBpm,
+    tempoRatio: tempoMatch ? tempoMatch.secondTempo / secondBpm : null,
     transitionBars,
     performanceCues: stylePlan.cues,
     creativeDirection: prompt.trim(),

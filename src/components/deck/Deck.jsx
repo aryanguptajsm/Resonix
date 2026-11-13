@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
+import { SoundTouchNode } from '@soundtouchjs/audio-worklet';
+import soundTouchProcessorUrl from '@soundtouchjs/audio-worklet/processor?url';
 import { analyzeAudioFile } from '../../audio/analyzeWaveform.js';
 import './Deck.css';
 
@@ -25,7 +27,9 @@ export default function Deck({
   syncBpm,
   syncTime = 0,
   syncPitch = 0,
+  syncTempoRatio = 1,
   automationCommand = null,
+  tempoRatio = 1,
   onDurationChange,
   onBpmChange,
   onEqChange,
@@ -33,6 +37,7 @@ export default function Deck({
   onVolumeChange,
   onPositionChange,
   onPitchChange,
+  onTempoRatioChange,
   onSyncFeedback,
   onPlayingChange,
   onTrackEnded,
@@ -51,6 +56,7 @@ export default function Deck({
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [pitch, setPitch] = useState(0);
+  const [pitchLocked, setPitchLocked] = useState(false);
   const [waveformPeaks, setWaveformPeaks] = useState([]);
   const [loopBeats, setLoopBeats] = useState(4);
   const [activeLoop, setActiveLoop] = useState(null);
@@ -89,7 +95,10 @@ export default function Deck({
     }
     setIsPlaying(false);
     setPitch(0);
+    setPitchLocked(false);
+    onTempoRatioChange?.(1);
     onPitchChange?.(0);
+    onTempoRatioChange?.(1);
     onPositionChange?.(0);
     waveformRequestRef.current += 1;
 
@@ -133,8 +142,19 @@ export default function Deck({
 
   useEffect(() => {
     const audio = audioRef.current;
-    if (audio) audio.playbackRate = 1 + pitch / 100;
-  }, [pitch]);
+    if (!audio) return;
+    const playbackRate = tempoRatio * (1 + pitch / 100);
+    audio.playbackRate = playbackRate;
+    const graph = audioGraphRef.current;
+    if (graph?.soundTouchNode) {
+      updateAudioParam(graph.context, graph.soundTouchNode.playbackRate, playbackRate);
+      updateAudioParam(
+        graph.context,
+        graph.soundTouchNode.pitch,
+        pitchLocked ? 1 : 1 + pitch / 100,
+      );
+    }
+  }, [pitch, pitchLocked, tempoRatio]);
 
   useEffect(() => {
     const canvas = waveformCanvasRef.current;
@@ -338,13 +358,26 @@ export default function Deck({
     return () => window.cancelAnimationFrame(frameId);
   }, [isPlaying]);
 
-  const createAudioGraph = () => {
+  const createAudioGraph = async () => {
     if (audioGraphRef.current) return audioGraphRef.current;
-    if (!window.AudioContext || !audioRef.current) {
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContextClass || !audioRef.current) {
       throw new Error('Web Audio API is not available in this browser.');
     }
 
-    const context = new window.AudioContext();
+    const context = new AudioContextClass();
+    if (!context.audioWorklet || !window.AudioWorkletNode) {
+      await context.close();
+      throw new Error('AudioWorklet is required for pitch-preserving tempo sync in this browser.');
+    }
+    try {
+      await SoundTouchNode.register(context, soundTouchProcessorUrl);
+    } catch (registrationError) {
+      await context.close();
+      throw new Error(`Could not load the pitch-preserving audio processor: ${registrationError.message}`);
+    }
+
+    const soundTouchNode = new SoundTouchNode({ context });
     const source = context.createMediaElementSource(audioRef.current);
     const lowFilter = context.createBiquadFilter();
     const midFilter = context.createBiquadFilter();
@@ -403,7 +436,9 @@ export default function Deck({
     }
     convolver.buffer = impulse;
 
-    source.connect(lowFilter);
+    audioRef.current.preservesPitch = false;
+    source.connect(soundTouchNode);
+    soundTouchNode.connect(lowFilter);
     lowFilter.connect(midFilter);
     midFilter.connect(highFilter);
     highFilter.connect(channelGain);
@@ -429,6 +464,7 @@ export default function Deck({
 
     audioGraphRef.current = {
       context,
+      soundTouchNode,
       lowFilter,
       midFilter,
       highFilter,
@@ -470,11 +506,15 @@ export default function Deck({
 
   const updatePitch = (value) => {
     const nextPitch = Math.max(-12, Math.min(12, value));
+    setPitchLocked(false);
+    onTempoRatioChange?.(1);
     setPitch(nextPitch);
     onPitchChange?.(nextPitch);
+    const audio = audioRef.current;
+    if (audio) audio.playbackRate = 1 + nextPitch / 100;
   };
 
-  const handleSync = ({ startAtBeginning = false } = {}) => {
+  const handleSync = ({ startAtBeginning = false, tempoRatio: requestedTempoRatio } = {}) => {
     const sourceBpm = Number(syncBpm);
     const targetBpm = Number(track?.bpm);
     if (!Number.isFinite(sourceBpm) || !Number.isFinite(targetBpm) || sourceBpm <= 0 || targetBpm <= 0) {
@@ -482,20 +522,34 @@ export default function Deck({
       return;
     }
 
-    const requestedPitch = ((sourceBpm * (1 + syncPitch / 100) / targetBpm) - 1) * 100;
-    const nextPitch = Math.round(Math.max(-12, Math.min(12, requestedPitch)));
-    const matchedBpm = targetBpm * (1 + nextPitch / 100);
-    const sourceBeat = startAtBeginning ? 0 : Math.round((syncTime * sourceBpm) / 60);
+    const sourceTempo = sourceBpm * syncTempoRatio * (1 + syncPitch / 100);
+    const matchRatio = Number.isFinite(requestedTempoRatio)
+      ? requestedTempoRatio
+      : sourceTempo / targetBpm;
+    if (!Number.isFinite(matchRatio) || matchRatio < 0.1 || matchRatio > 8) {
+      setError('The tempo ratio is outside the supported pitch-lock range.');
+      return;
+    }
+    const nextPitch = 0;
+    setPitch(nextPitch);
+    setPitchLocked(true);
+    onPitchChange?.(nextPitch);
+    onTempoRatioChange?.(matchRatio);
+    if (audioRef.current) audioRef.current.playbackRate = matchRatio;
+    const graph = audioGraphRef.current;
+    if (graph?.soundTouchNode) {
+      updateAudioParam(graph.context, graph.soundTouchNode.playbackRate, matchRatio);
+      updateAudioParam(graph.context, graph.soundTouchNode.pitch, 1);
+    }
+    const matchedBpm = targetBpm * matchRatio;
+    const sourceBeat = startAtBeginning
+      ? 0
+      : Math.round((syncTime * sourceBpm * syncTempoRatio * (1 + syncPitch / 100)) / 60);
     const targetBeatTime = (sourceBeat * 60) / targetBpm;
-    updatePitch(nextPitch);
     seekTo(targetBeatTime);
     setError('');
-
-    const limited = Math.abs(requestedPitch - nextPitch) >= 0.5
-      ? ' Pitch limit ±12% reached; BPM match is partial.'
-      : '';
     onSyncFeedback?.(
-      `Deck ${deckId} synced near beat ${sourceBeat + 1} at ${matchedBpm.toFixed(1)} BPM. Phase assumes the first beat is at track start; BPM is approximate.${limited}`,
+      `Deck ${deckId} tempo-matched near ${matchedBpm.toFixed(1)} BPM with pitch lock. Phase uses the analyzed beat grid.`,
     );
   };
 
@@ -601,7 +655,7 @@ export default function Deck({
   const handlePlay = async () => {
     if (!track?.url || !audioRef.current) return;
     try {
-      const graph = createAudioGraph();
+      const graph = await createAudioGraph();
       await graph.context.resume();
       await audioRef.current.play();
       setError('');
@@ -648,8 +702,19 @@ export default function Deck({
       setCurrentTime(0);
       onPositionChange?.(0);
     }
-    if (automationCommand.action === 'sync-play') handleSync({ startAtBeginning: true });
-    void handlePlay();
+    const startAutomation = async () => {
+      const graph = await createAudioGraph();
+      if (automationCommand.action === 'sync-play') {
+        handleSync({
+          startAtBeginning: true,
+          tempoRatio: automationCommand.tempoRatio,
+        });
+      }
+      await handlePlay(graph);
+    };
+    void startAutomation().catch((automationError) => {
+      setError(`Auto-DJ playback could not start: ${automationError.message}`);
+    });
   }, [automationCommand, track?.id, track?.url]);
 
   const handleMetadata = () => {
