@@ -4,17 +4,50 @@ import './SmartSet.css';
 
 function SmartSet({ tracks, autoSet, onStart, onStop }) {
   const [openingTrackId, setOpeningTrackId] = useState('');
-  const setlist = useMemo(() => {
+  const [mixStyle, setMixStyle] = useState('festival');
+  const [queueOrder, setQueueOrder] = useState([]);
+  const generatedSetlist = useMemo(() => {
     if (tracks.length < 2) return [];
     const openingId = tracks.some((track) => track.id === openingTrackId)
       ? openingTrackId
       : tracks[0].id;
     return createLocalSmartSetlist(tracks, openingId);
   }, [openingTrackId, tracks]);
+  const setlist = useMemo(() => {
+    if (generatedSetlist.length === 0) return generatedSetlist;
+    const trackById = new Map(generatedSetlist.map((track) => [track.id, track]));
+    const orderedTracks = queueOrder
+      .map((trackId) => trackById.get(trackId))
+      .filter(Boolean);
+    generatedSetlist.forEach((track) => {
+      if (!orderedTracks.some((queuedTrack) => queuedTrack.id === track.id)) {
+        orderedTracks.push(track);
+      }
+    });
+    const openerId = tracks.some((track) => track.id === openingTrackId)
+      ? openingTrackId
+      : generatedSetlist[0].id;
+    const openerIndex = orderedTracks.findIndex((track) => track.id === openerId);
+    if (openerIndex > 0) orderedTracks.unshift(orderedTracks.splice(openerIndex, 1)[0]);
+    return orderedTracks;
+  }, [generatedSetlist, openingTrackId, queueOrder, tracks]);
 
   const handleStart = () => {
-    if (setlist.length >= 2) onStart(setlist);
+    if (setlist.length >= 2) onStart(setlist, mixStyle);
   };
+
+  const moveTrack = (index, direction) => {
+    const destination = index + direction;
+    if (autoSet || destination < 1 || destination >= setlist.length) return;
+    const reorderedIds = setlist.map((track) => track.id);
+    [reorderedIds[index], reorderedIds[destination]] = [reorderedIds[destination], reorderedIds[index]];
+    setQueueOrder(reorderedIds);
+  };
+
+  const currentTrackId = autoSet?.trackIds[Math.max(0, autoSet.nextIndex - 1)];
+  const nextTrackId = autoSet?.trackIds[autoSet.nextIndex];
+  const currentTrack = tracks.find((track) => track.id === currentTrackId);
+  const nextTrack = tracks.find((track) => track.id === nextTrackId);
   const activeStage = autoSet?.stage || 'ready';
   const stageIndex = {
     ready: -1,
@@ -38,8 +71,8 @@ function SmartSet({ tracks, autoSet, onStart, onStop }) {
   return (
     <section className="smart-set" id="smart-set" aria-labelledby="smart-set-title">
       <div className="smart-set__intro">
-        <span className="smart-set__eyebrow">LOCAL CONCERT MIX · NO UPLOADS</span>
-        <h2 id="smart-set-title">Build a live concert mix</h2>
+        <span className="smart-set__eyebrow">AUTO-DJ · LOCAL AUDIO</span>
+        <h2 id="smart-set-title">Auto-DJ / Concert Mode</h2>
         <p>
           Resonix orders your songs by beat and key, blends into each next song around
           the middle, then brings the opening song back for the finale.
@@ -55,6 +88,19 @@ function SmartSet({ tracks, autoSet, onStart, onStop }) {
             {tracks.map((track) => (
               <option key={track.id} value={track.id}>{track.title}</option>
             ))}
+          </select>
+        </label>
+        <label className="smart-set__style" htmlFor="smart-set-style">
+          MIX STYLE
+          <select
+            id="smart-set-style"
+            value={mixStyle}
+            onChange={(event) => setMixStyle(event.target.value)}
+            disabled={Boolean(autoSet)}
+          >
+            <option value="festival">Festival House</option>
+            <option value="techno">Afterhours Techno</option>
+            <option value="disco">Neon Disco</option>
           </select>
         </label>
         {autoSet ? (
@@ -81,6 +127,22 @@ function SmartSet({ tracks, autoSet, onStart, onStop }) {
             <small className="smart-set__hint" role="status">
               {stageLabel} · {Math.min(autoSet.nextIndex, autoSet.songCount)} of {autoSet.songCount} songs cued
             </small>
+            <div className="smart-set__now-playing">
+              <span><strong>NOW PLAYING</strong>{currentTrack?.title || 'Preparing next song'}</span>
+              <span><strong>NEXT UP</strong>{nextTrack?.title || 'Finale'}</span>
+            </div>
+            {autoSet.phase === 'blending' && (
+              <div
+                className="smart-set__progress"
+                role="progressbar"
+                aria-label="Transition progress"
+                aria-valuemin="0"
+                aria-valuemax="100"
+                aria-valuenow={Math.round((autoSet.progress || 0) * 100)}
+              >
+                <span style={{ width: `${Math.round((autoSet.progress || 0) * 100)}%` }} />
+              </div>
+            )}
             <ol className="smart-set__arc" aria-label="Concert mix progress">
               {['START', 'BUILD + DROP', 'MIDDLE', 'ENDING'].map((step, index) => (
                 <li
@@ -110,6 +172,24 @@ function SmartSet({ tracks, autoSet, onStart, onStop }) {
             </span>
             <span className="smart-set__role">
               {index === 0 ? 'OPEN / RETURN' : 'NEXT'}
+            </span>
+            <span className="smart-set__queue-controls">
+              <button
+                type="button"
+                aria-label={`Move ${track.title} up in queue`}
+                disabled={Boolean(autoSet) || index <= 1}
+                onClick={() => moveTrack(index, -1)}
+              >
+                ↑
+              </button>
+              <button
+                type="button"
+                aria-label={`Move ${track.title} down in queue`}
+                disabled={Boolean(autoSet) || index === setlist.length - 1}
+                onClick={() => moveTrack(index, 1)}
+              >
+                ↓
+              </button>
             </span>
           </li>
         ))}
