@@ -20,7 +20,7 @@ The mixer’s **Balanced Bass** button applies a gentle -2 dB low-EQ trim to bot
 
 ## Requirements
 
-- Node.js 22.12 or newe
+- Node.js 22.12 or newer
 - npm
 
 ## Run locally
