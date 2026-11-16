@@ -18,7 +18,7 @@ Tempo, key and phrase analysis are approximate. Transitions use the estimated ph
 
 The mixer’s **Balanced Bass** button applies a gentle -2 dB low-EQ trim to both decks; use EQ Reset for a flat response. Speaker, room, and track mastering vary, so no single EQ preset can guarantee perfect bass on every system. The set transition automates crossfader volume, EQ bass handoff, filter opening, reverb, and outgoing echo. A peak guard helps control brief output peaks but is not a substitute for safe speaker levels.
 
-## Requirement
+## Requirements
 
 - Node.js 22.12 or newer
 - npm
