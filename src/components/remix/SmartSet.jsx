@@ -35,7 +35,7 @@ function SmartSet({ tracks, autoSet, onStart, onStop }) {
 
   const handleStart = () => {
     if (setlist.length >= 2) onStart(setlist, mixStyle);
-  }
+  };
 
   const reorderQueue = (sourceTrackId, destinationTrackId) => {
     if (autoSet || sourceTrackId === destinationTrackId) return;
