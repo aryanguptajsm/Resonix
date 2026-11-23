@@ -38,7 +38,7 @@ function SmartSet({ tracks, autoSet, onStart, onStop }) {
   };
 
   const reorderQueue = (sourceTrackId, destinationTrackId) => {
-    if (autoSet || sourceTrackId === destinationTrackId) return;
+    if (autoSet || sourceTrackId === destinationTrackId) return
     const reorderedIds = setlist.map((track) => track.id);
     const sourceIndex = reorderedIds.indexOf(sourceTrackId);
     const destinationIndex = reorderedIds.indexOf(destinationTrackId);
